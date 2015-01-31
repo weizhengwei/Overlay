@@ -1,0 +1,230 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Source Files\common">
+      <UniqueIdentifier>{4640a6fd-531d-492d-bbe0-b8505fa299fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common\crypt">
+      <UniqueIdentifier>{0198e1d5-f8bd-43b3-aca4-0c4683588661}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common\download">
+      <UniqueIdentifier>{9a0970a6-5d02-4bc5-ac15-a8d666f20341}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\common\data">
+      <UniqueIdentifier>{04c5b037-c5b6-474c-b378-8764cf4fe795}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\IM">
+      <UniqueIdentifier>{29da2e3d-2e45-48fc-97ba-7fe8dd68e498}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="IM">
+      <UniqueIdentifier>{70d38394-34f7-45a0-a43b-761d7ec11c8e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="BrowserImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\browser\BrowserImplbase.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ClientOSRHandler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CoreOSOverlay.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FolderListWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayBrowserMainWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayBrowserWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayFileWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayImImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayImpl.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayMainWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayNotifyWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayNotifyWndNew.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlaySettingWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OverlayTipWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\im\TabListWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UIMainWndframe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\data\DataPool.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\data\ErrorReport.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\PopUpManager.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\data\Registry.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\tstring\SafeStrFunc.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\data\SystemInfo.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\thread\thread.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\tstring\tstring.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\data\UIString.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\data\Utility.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\data\WebData.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\data\WebService.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\crypt\base64.cpp">
+      <Filter>Source Files\common\crypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\crypt\crc32.cpp">
+      <Filter>Source Files\common\crypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\crypt\des.cpp">
+      <Filter>Source Files\common\crypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\crypt\kaes.cpp">
+      <Filter>Source Files\common\crypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\crypt\md5.cpp">
+      <Filter>Source Files\common\crypt</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\download\unzip.cpp">
+      <Filter>Source Files\common\download</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\download\zip.cpp">
+      <Filter>Source Files\common\download</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\data\AsynWebServiceHelper.cpp">
+      <Filter>Source Files\common\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\data\CSVTool.cpp">
+      <Filter>Source Files\common\data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\im\im_ui_mgr.cpp">
+      <Filter>Source Files\IM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\src\im\im_ui_secondary.cpp">
+      <Filter>Source Files\IM</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Common\include\data\AsynWebServiceHelper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BrowserImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ClientOSRHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FolderListWnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OverlayBrowserMainWnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OverlayBrowserWnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OverlayFileWnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OverlayImImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OverlayImpl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OverlayMainWnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OverlayNotifyWnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OverlayNotifyWndNew.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OverlaySettingWnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OverlayTipWnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\include\PopUpManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\include\im\TabListWnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UIMainWndframe.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\include\im\im_ui_mgr.h">
+      <Filter>IM</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\include\im\im_ui_secondary.h">
+      <Filter>IM</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="CoreOSOverlay.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
