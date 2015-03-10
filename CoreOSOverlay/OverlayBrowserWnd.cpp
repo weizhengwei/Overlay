@@ -37,6 +37,10 @@ void COverlayBrowserWnd::CloseBrowser(ClientOSRHandler* pBrowserHandler)
 {
 	if(pBrowserHandler)
 	{
+		if (pBrowserHandler->GetBrowser()->IsLoading())
+		{
+			 pBrowserHandler->GetBrowser()->StopLoad();
+		}
 	  pBrowserHandler->GetBrowser()->GetHost()->CloseBrowser(false);
 	}
 }

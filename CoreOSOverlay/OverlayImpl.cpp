@@ -78,18 +78,26 @@ void COverlayImpl::SendCursorMsg(int nCursorResID)
 }
 void COverlayImpl::Init()
 {
-	TCHAR szGameId [64] = {0};
-	if(!GetEnvironmentVariable(_T("CoreGameId"), szGameId, 64))
-	{
-		//szGameId[0] = _T('0');
-	}
-	m_strGameId = szGameId;
-	WTL::CString str;
-	str.Format(_T("arc_%s_sm"),szGameId);
-	if (!m_smMgr.Open(str))
-	{
-		TerminateProcess(GetCurrentProcess(),0);
-	}
+    TCHAR szGameId [64] = {0};
+    if(!GetEnvironmentVariable(_T("CoreGameId"), szGameId, 64))
+    {
+        //szGameId[0] = _T('0');
+    }
+    m_strGameId = szGameId;
+
+    TCHAR szShareMemName [64] = {0};
+    if(!GetEnvironmentVariable(_T("ShareMemName"), szShareMemName, 64))
+    {
+        //szGameId[0] = _T('0');
+    }
+
+
+    //WTL::CString str;
+    //str.Format(_T("%s_s"),szGameId);
+    if (!m_smMgr.Open(szShareMemName))
+    {
+        TerminateProcess(GetCurrentProcess(),0);
+    }
 }
 CSize COverlayImpl::GetOverlaySize()
 {

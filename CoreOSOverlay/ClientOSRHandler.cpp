@@ -54,41 +54,24 @@ void ClientOSRHandler::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 	Unlock();
 }
 
-void ClientOSRHandler::OnLoadStart(CefRefPtr<CefBrowser> browser,CefRefPtr<CefFrame> frame) 
+
+
+ void ClientOSRHandler::OnLoadingStateChange(CefRefPtr<CefBrowser> browser,
+								  bool isLoading,
+								  bool canGoBack,
+								  bool canGoForward)
 {
-	REQUIRE_UI_THREAD();
-
-	if( frame->IsMain())
+	SetFocus(CBrowserImpl::GetInstance()->GetParent());
+	tagBrowserMsgData msgdata;
+	msgdata.pHandler = this;
+	msgdata.loading = isLoading;
+	msgdata.msgid = BROWSER_HANDLER_LOAD;
+	::SendMessage(CBrowserImpl::GetInstance()->GetBrwoserMainWnd(),WM_COREBROWSERMESSAGE,0,(LPARAM)&msgdata);
+	if (!isLoading)
 	{
-		// We've just started loading a page
-		//SetLoading(true);
-        SetFocus(CBrowserImpl::GetInstance()->GetParent());
-		tagBrowserMsgData msgdata;
-		msgdata.pHandler = this;
-		msgdata.loading = true;
-		msgdata.msgid = BROWSER_HANDLER_LOAD;
-		::SendMessage(CBrowserImpl::GetInstance()->GetBrwoserMainWnd(),WM_COREBROWSERMESSAGE,0,(LPARAM)&msgdata);
-	}
-}
-
-void ClientOSRHandler::OnLoadEnd(CefRefPtr<CefBrowser> browser,
-					   CefRefPtr<CefFrame> frame,
-					   int httpStatusCode) 
-					   
-{
-	REQUIRE_UI_THREAD();
-
-	if(frame->IsMain())
-	{
-		// We've just finished loading a page
-		//SetLoading(false);
-		tagBrowserMsgData msgdata;
-		msgdata.pHandler = this;
-		msgdata.loading = false;
-		msgdata.msgid = BROWSER_HANDLER_LOAD;
-		::SendMessage(CBrowserImpl::GetInstance()->GetBrwoserMainWnd(),WM_COREBROWSERMESSAGE,0,(LPARAM)&msgdata);
 		::SendMessage(m_BrowserHwnd,WM_COREBROWSERMESSAGE,0,(LPARAM)&msgdata);
 	}
+	
 }
 
 void ClientOSRHandler::OnAddressChange(CefRefPtr<CefBrowser> browser,
@@ -163,7 +146,14 @@ bool ClientOSRHandler::GetRootScreenRect(CefRefPtr<CefBrowser> browser,
 						   CefRect& rect)
 {
 	REQUIRE_UI_THREAD();
-	return GetViewRect(browser,rect);
+	CRect rcWindow;
+	::GetWindowRect(CBrowserImpl::GetInstance()->GetBrwoserMainWnd(),rcWindow);
+	rect.x = rcWindow.left;
+	rect.y = rcWindow.top;
+	rect.height = rcWindow.Height();
+	rect.width = rcWindow.Width();
+	return true;
+	//return GetViewRect(browser,rect);
 
 }
 void ClientOSRHandler::OnPopupShow(CefRefPtr<CefBrowser> browser,
@@ -192,14 +182,19 @@ void ClientOSRHandler::OnPopupSize(CefRefPtr<CefBrowser> browser,
 	}
     if (popup_rect_.x < 0)
     {
-        OutputDebugStringA("resize popup_rect_.x = 0");
+       // OutputDebugStringA("resize popup_rect_.x = 0");
         popup_rect_.x = 0;
     }
     if (popup_rect_.y < 0)
     {
-        OutputDebugStringA("resize popup_rect_.y = 0");
+       // OutputDebugStringA("resize popup_rect_.y = 0");
         popup_rect_.y = 0;
     }	
+
+	if (popup_rect_.x + popup_rect_.width > m_nWidth)
+		popup_rect_.width = m_nWidth - popup_rect_.x;
+	if (popup_rect_.y + popup_rect_.height > m_nHeight)
+		popup_rect_.height = m_nHeight  - popup_rect_.y ;
 }
 
 void ClientOSRHandler:: OnPaint(CefRefPtr<CefBrowser> browser,
@@ -257,14 +252,13 @@ void ClientOSRHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 
  void ClientOSRHandler::SetBrowserSize(PaintElementType type, int width, int height)
  {
-	// Lock();
 	 m_nHeight = height;
 	 m_nWidth = width;
 	 if (m_Browser)
 	 {
 		 m_Browser->GetHost()->WasResized();
 	 }
-	// Unlock();
+	
  }
  void ClientOSRHandler::Invalidate(CefRect *rect)
  {

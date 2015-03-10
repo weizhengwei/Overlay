@@ -213,7 +213,8 @@ int CBrowserImpl::InsertTab(int nIndex,HWND hwnd,LPCTSTR lpctstr,bool bActive)
 		return 0;
 	}
 	_tstring strText;
-	strText.Format(4,_T("/c=%x%s,linkh=%x/%s"),RGB(170,170,170),TABTILE_FONT,RGB(243,243,243),lpctstr);
+	//strText.Format(4,_T("/c=%x%s,linkh=%x/%s"),RGB(170,170,170),TABTILE_FONT,RGB(243,243,243),lpctstr);
+	strText.Format(5,_T("/p=%d, frame_interval=30,align=1//c=%x%s,align=1,single_line=2, linkh=%x/  %s"),GetCoreUI()->GetImage(_T("ANI_LOADING"))->GetObjectId(),RGB(170,170,170),TABTILE_FONT,RGB(243,243,243),GetSonicUI()->HandleRawString(lpctstr,RSCT_DOUBLE));
 	if (nIndex == -1 )
 	{
 		m_pTab->AddTab(hwnd,strText.c_str());
@@ -387,7 +388,7 @@ void CBrowserImpl::BrowserInit(HINSTANCE hInstance,CefRefPtr<CefApp> app)
 
 	USES_CONVERSION;
 	CefSettings settings;
-	settings.single_process = true;
+	//settings.single_process = true;
 	settings.remote_debugging_port = 9087;
 	CBrowserImplbase::BrowserInit(hInstance,A2T(_tstring("Mozilla/5.0 (Windows NT 5.1) AppleWebKit/534.30 (KHTML, like Gecko) Chrome/12.0.742.112 Safari/534.30 PWECoreOverlay/1.0").toUTF8().c_str()),app.get(),settings);
 }

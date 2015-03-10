@@ -5,6 +5,7 @@
 #include "OverlayImpl.h"
 #include "data\ErrorReport.h"
 #include "OverlayImImpl.h"
+#include "browser/client_app.h"
 
 CAppModule _Module;
 
@@ -13,7 +14,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 					   LPTSTR    lpCmdLine,
 					   int       nCmdShow)
 {
-	//load font
+
+	CefMainArgs main_args(hInstance);
+	CefRefPtr<ClientApp> app(new ClientApp);
+	int exit_code = CefExecuteProcess(main_args, app.get());
+	if (exit_code >= 0)
+		return exit_code;
+
 	InitErrorReport(theDataPool.GetBaseDir().c_str(),I_CRASHREPORT);
 
     //::MessageBox(NULL,lpCmdLine,lpCmdLine,0);
@@ -57,7 +64,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	}
 	//
 
-	CefRefPtr<CefApp> app;
+	//CefRefPtr<CefApp> app;
 	CBrowserImpl::GetInstance()->BrowserInit(hInstance,app.get());
 	CBrowserImpl::GetInstance()->CursorInit(NULL);
 	TCHAR ch[256] = {0};
@@ -65,6 +72,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	{
 		lstrcpyn(ch,__targv[0],256);
 	}
+
 	COverlayImpl::GetInstance()->SetClientHwnd((HWND)_wtoi(ch));
 
 	// create main window
