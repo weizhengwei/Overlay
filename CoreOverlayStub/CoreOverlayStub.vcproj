@@ -205,7 +205,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\common\include;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Samples\C++\Effects11\Inc&quot;;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Samples\C++\Effects11\Binary&quot;;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Include&quot;"
+				AdditionalIncludeDirectories="..\common\include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;COREOVERLAYSTUB_EXPORTS;_CRT_SECURE_NO_WARNINGS;_CRT_NON_CONFORMING_SWPRINTFS;DETOURS_X86;DETOURS_32BIT"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="2"
@@ -224,10 +224,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="detours.lib"
 				OutputFile="..\release\ArcOverlayStub.dll"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="..\common\lib;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Samples\C++\Effects11\debug\&quot;;&quot;C:\Program Files (x86)\Microsoft DirectX SDK (June 2010)\Lib\x86&quot;"
-				IgnoreDefaultLibraryNames=""
+				AdditionalLibraryDirectories="..\common\lib"
+				IgnoreDefaultLibraryNames="msvcrt.lib"
 				ModuleDefinitionFile="CoreOverlayStub.def"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -522,15 +523,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\CoreHook_Unity.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\CoreOverlayStub.cpp"
 				>
 			</File>
 			<File
 				RelativePath=".\MsgSwitchboard.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\SSEFunc.cpp"
 				>
 			</File>
 			<File
@@ -600,17 +601,81 @@
 				>
 			</File>
 			<File
-				RelativePath=".\MsgSwitchboard.h"
+				RelativePath=".\CoreHook_Unity.h"
 				>
 			</File>
 			<File
-				RelativePath=".\SSEFunc.h"
+				RelativePath=".\MsgSwitchboard.h"
 				>
 			</File>
 			<File
 				RelativePath=".\stdafx.h"
 				>
 			</File>
+			<Filter
+				Name="Hook"
+				>
+				<File
+					RelativePath=".\CoreHook_DirectX.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CoreHook_DirectX.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CoreHook_Imp.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CoreHook_Imp.h"
+					>
+				</File>
+				<File
+					RelativePath=".\CoreHook_WinApi.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\CoreHook_WinApi.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="Render"
+				>
+				<File
+					RelativePath=".\Render\CoreHook_Render.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Render\CoreHook_Render.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Render\DirectXRender_D3D11.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Render\DirectXRender_D3D11.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Render\DirectXRender_D3D8.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Render\DirectXRender_D3D8.h"
+					>
+				</File>
+				<File
+					RelativePath=".\Render\DirectXRender_D3D9.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\Render\DirectXRender_D3D9.h"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="Resource Files"
@@ -620,198 +685,6 @@
 			<File
 				RelativePath=".\CoreOverlayStub.def"
 				>
-			</File>
-		</Filter>
-		<Filter
-			Name="detours"
-			>
-			<File
-				RelativePath=".\detours\creatwth.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="x64|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="x64|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\detours\detours.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="x64|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="x64|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\detours\detours.h"
-				>
-			</File>
-			<File
-				RelativePath=".\detours\detver.h"
-				>
-			</File>
-			<File
-				RelativePath=".\detours\disasm.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="x64|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="x64|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\detours\image.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="x64|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="x64|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\detours\modules.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="x64|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="x64|x64"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
 			</File>
 		</Filter>
 		<File

@@ -26,6 +26,7 @@
 #define WIN32_LEAN_AND_MEAN		// Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
 #include <windows.h>
+#include <winternl.h>
 
 
 
@@ -34,3 +35,6 @@
 #include "atlwin.h"
 #include "atlstr.h"
 #include "atltypes.h"
+
+#include "detours\detours.h"
+#include "CoreHook_Unity.h"

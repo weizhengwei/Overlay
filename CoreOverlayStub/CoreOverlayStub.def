@@ -2,6 +2,5 @@ LIBRARY	"ArcOverlayStub"
 
 	
 EXPORTS
-	CoreCreateProcessWithDll @1
-	GotoUrlInOverlay @2
-	ShowOverlay @3
+	GotoUrlInOverlay @1
+	ShowOverlay @2

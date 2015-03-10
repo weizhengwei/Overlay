@@ -21,7 +21,6 @@ LRESULT CMsgSwitchboard::OnCoreMessage( UINT uMsg, WPARAM wParam, LPARAM lParam,
 			core_msg_cursorchange * pBody = (core_msg_cursorchange *)pHeader;
 			if(pBody->lCursorId)
 			{
-	
 				if(!g_CoreHook.m_hCurrCursor)
 				{
 					g_CoreHook.m_nCursorCount = g_CoreHook.SysShowCursor(TRUE) - 1;

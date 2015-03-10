@@ -1,31 +1,5 @@
 #pragma once
 
-LPVOID GetVirtualCall(LPVOID pObject, int nIndex)
-{
-	PDWORD_PTR pVirTable = (PDWORD_PTR)*(PDWORD_PTR)pObject;
-	return (PDWORD_PTR)*(pVirTable + nIndex);
-}
-
-LPVOID ScanCode(LPVOID pStart, DWORD dwLen, const BYTE pChar[], DWORD dwCharLen)
-{
-	if(!pStart || !dwLen || !dwCharLen)
-	{
-		return NULL;
-	}
-	DWORD i = 0;
-	for(char * p = (char *)pStart; i < dwLen; i++, p++)
-	{
-		if(i + dwCharLen > dwLen)
-		{
-			break;
-		}
-		if(memcmp(p, pChar, dwCharLen) == 0)
-		{
-			return p;
-		}
-	}
-	return NULL;
-}
 
 typedef struct D3DLOCKED_RECT {
 	INT  Pitch;
@@ -46,9 +20,17 @@ typedef struct D3D9_D3DSURFACE_DESC
     UINT                Height;
 } D3D9_D3DSURFACE_DESC;
 
+typedef struct _D3DDEVICE_CREATION_PARAMETERS
+{
+    UINT            AdapterOrdinal;
+    UINT            DeviceType;
+    HWND            hFocusWindow;
+    DWORD           BehaviorFlags;
+} D3DDEVICE_CREATION_PARAMETERS;
+
 #define FAST_DEFINE_VIRFUNC(funcname, params, nake_params, index) static int funcname##params{ \
 	typedef int(* FUNC_##funcname)##params; \
-	FUNC_##funcname p##funcname = (FUNC_##funcname)GetVirtualCall(pObject, index); \
+    FUNC_##funcname p##funcname = (FUNC_##funcname)CoreHook::Unity::GetVirtualCall(pObject, index); \
 	return (*p##funcname)##nake_params;}
 
 
@@ -88,6 +70,8 @@ public:
 	FAST_DEFINE_VIRFUNC(DrawPrimitiveUp, (LPVOID pObject, int PrimitiveType, UINT PrimitiveCount, CONST void* pVertexStreamZeroData, UINT VertexStreamZeroStride), (pObject, PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride), 83);
 	FAST_DEFINE_VIRFUNC(SetPixelShader, (LPVOID pObject, void * pShader), (pObject, pShader), 107);
 	FAST_DEFINE_VIRFUNC(SetVertextShader, (LPVOID pObject, void * pShader), (pObject, pShader), 92);
+
+    FAST_DEFINE_VIRFUNC(GetCreationParameters, (LPVOID pObject, D3DDEVICE_CREATION_PARAMETERS *pParameters), (pObject, pParameters), 9);
 };
 
 class CDXStateBlock9
@@ -114,8 +98,6 @@ public:
 
 
 
-
-
 // directx8 wrappers
 class CDXDevice8
 {
@@ -127,6 +109,8 @@ public:
 	FAST_DEFINE_VIRFUNC(BeginSence, (LPVOID pObject), (pObject), 34);
 	FAST_DEFINE_VIRFUNC(EndScene, (LPVOID pObject), (pObject), 35);
 	FAST_DEFINE_VIRFUNC(DrawPrimitiveUp, (LPVOID pObject, int PrimitiveType, UINT PrimitiveCount, CONST void* pVertexStreamZeroData, UINT VertexStreamZeroStride), (pObject, PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride), 72);
+    FAST_DEFINE_VIRFUNC(GetBackBuffer, (LPVOID pObject, UINT BackBuffer, UINT Type, void** ppBackBuffer), (pObject, BackBuffer, Type, ppBackBuffer), 16);
+    FAST_DEFINE_VIRFUNC(GetCreationParameters, (LPVOID pObject, D3DDEVICE_CREATION_PARAMETERS *pParameters), (pObject, pParameters), 9);
 };
 
 class CDXTexture8
@@ -134,6 +118,30 @@ class CDXTexture8
 public:
 	FAST_DEFINE_VIRFUNC(LockRect, (LPVOID pObject, UINT uLevel, D3DLOCKED_RECT * pLockedRect, const RECT * pRect, DWORD Flags), (pObject, uLevel, pLockedRect, pRect, Flags), 16);
 	FAST_DEFINE_VIRFUNC(UnlockRect, (LPVOID pObject, UINT uLevel), (pObject, uLevel), 17);
+};
+
+
+/* Surface Description */
+struct D3DSURFACE_DESC8
+{
+    UINT                Format;
+    UINT                Type;
+    DWORD               Usage;
+    int                 Pool;
+    UINT                Size;
+
+    int                 MultiSampleType;
+    UINT                Width;
+    UINT                Height;
+} ;
+
+
+class CDXSurface8
+{
+public:
+    FAST_DEFINE_VIRFUNC(GetDesc, (LPVOID pObject, D3DSURFACE_DESC8* pDesc), (pObject, pDesc), 8);
+    FAST_DEFINE_VIRFUNC(LockRect, (LPVOID pObject, D3DLOCKED_RECT * pLockedRect, const RECT * pRect, DWORD Flags), (pObject, pLockedRect, pRect, Flags), 9);
+    FAST_DEFINE_VIRFUNC(UnlockRect, (LPVOID pObject), (pObject), 10);
 };
 
 // directx11 wrappers
@@ -159,21 +167,21 @@ typedef struct D3D11_MAPPED_SUBRESOURCE
 	UINT DepthPitch;
 } D3D11_MAPPED_SUBRESOURCE;
 
-//typedef struct DXGI_RATIONAL
-//{
-//	UINT Numerator;
-//	UINT Denominator;
-//} DXGI_RATIONAL;
+typedef struct DXGI_RATIONAL
+{
+	UINT Numerator;
+	UINT Denominator;
+} DXGI_RATIONAL;
 
-//typedef struct DXGI_MODE_DESC
-//{
-//	UINT Width;
-//	UINT Height;
-//	DXGI_RATIONAL RefreshRate;
-//	UINT Format;
-//	UINT ScanlineOrdering;
-//	UINT Scaling;
-//} DXGI_MODE_DESC;
+typedef struct DXGI_MODE_DESC
+{
+	UINT Width;
+	UINT Height;
+	DXGI_RATIONAL RefreshRate;
+	UINT Format;
+	UINT ScanlineOrdering;
+	UINT Scaling;
+} DXGI_MODE_DESC;
 
 typedef struct DXGI_SWAP_CHAIN_DESC
 {
@@ -392,6 +400,53 @@ public:
 
 };
 
+
+struct D3DPRESENT_PARAMETERS_9
+{
+    UINT                BackBufferWidth;
+    UINT                BackBufferHeight;
+    UINT                BackBufferFormat;
+    UINT                BackBufferCount;
+
+    UINT                MultiSampleType;
+    DWORD               MultiSampleQuality;
+
+    UINT                SwapEffect;
+    HWND                hDeviceWindow;
+    BOOL                Windowed;
+    BOOL                EnableAutoDepthStencil;
+    UINT                AutoDepthStencilFormat;
+    DWORD               Flags;
+
+    /* FullScreen_RefreshRateInHz must be zero for Windowed mode */
+    UINT                FullScreen_RefreshRateInHz;
+    UINT                PresentationInterval;
+};
+
+
+struct D3DPRESENT_PARAMETERS_8
+{
+    UINT                BackBufferWidth;
+    UINT                BackBufferHeight;
+    UINT                BackBufferFormat;
+    UINT                BackBufferCount;
+
+    UINT                MultiSampleType;
+
+    UINT                SwapEffect;
+    HWND                hDeviceWindow;
+    BOOL                Windowed;
+    BOOL                EnableAutoDepthStencil;
+    UINT                AutoDepthStencilFormat;
+    DWORD               Flags;
+
+    /* Following elements must be zero for Windowed mode */
+    UINT                FullScreen_RefreshRateInHz;
+    UINT                FullScreen_PresentationInterval;
+
+};
+
+
 class CDXSwapChian
 {
 public:
@@ -404,6 +459,7 @@ class CDXSwapChian9
 {
 public:
     FAST_DEFINE_VIRFUNC(GetDevice, (LPVOID pObject, LPVOID * ppDevice), (pObject, ppDevice), 8);
+    FAST_DEFINE_VIRFUNC(GetPresentParameters, (LPVOID pObject, D3DPRESENT_PARAMETERS_9* pPresentationParameters), (pObject, pPresentationParameters), 9);
 };
 
 class CDXDeviceContext11
@@ -473,4 +529,33 @@ class CDXBlob
 public:
 	FAST_DEFINE_VIRFUNC(GetBufferPointer, (LPVOID pObject), (pObject), 3);
 	FAST_DEFINE_VIRFUNC(GetBufferSize, (LPVOID pObject), (pObject), 4);
+};
+
+
+
+
+
+/* Display Modes */
+typedef struct _D3DDISPLAYMODE
+{
+    UINT            Width;
+    UINT            Height;
+    UINT            RefreshRate;
+    UINT            Format;
+} D3DDISPLAYMODE;
+
+
+class CDXIDirect3D8
+{
+public:
+    FAST_DEFINE_VIRFUNC(GetAdapterDisplayMode, (LPVOID pObject, UINT Adapter, D3DDISPLAYMODE* pMode), (pObject, Adapter, pMode), 8);
+    FAST_DEFINE_VIRFUNC(CreateDevice, (LPVOID pObject, UINT Adapter, UINT DeviceType,HWND hFocusWindow,DWORD BehaviorFlags,D3DPRESENT_PARAMETERS_8* pPresentationParameters, void** ppReturnedDeviceInterface),
+        (pObject, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface), 15);
+};
+
+class CDXIDirect3D9
+{
+public:
+    FAST_DEFINE_VIRFUNC(CreateDevice, (LPVOID pObject, UINT Adapter, UINT DeviceType,HWND hFocusWindow,DWORD BehaviorFlags,D3DPRESENT_PARAMETERS_9* pPresentationParameters, void** ppReturnedDeviceInterface),
+        (pObject, Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface), 16);
 };
