@@ -112,35 +112,23 @@ void ClientHandler::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 	}
 
 }
-
-
-void ClientHandler::OnLoadStart(CefRefPtr<CefBrowser> browser,
-								CefRefPtr<CefFrame> frame)
+void ClientHandler::OnLoadingStateChange(CefRefPtr<CefBrowser> browser,
+						  bool isLoading,
+						  bool canGoBack,
+						  bool canGoForward)
 {
-	if(!browser->IsPopup() && frame->IsMain())
+	if(!browser->IsPopup())
 	{
-        //SetFocus(CBrowserImpl::GetInstance()->GetParent());
+		//SetFocus(CBrowserImpl::GetInstance()->GetParent());
 
 		core_msg_browserinfo browserinfo;
 		browserinfo.bGet = FALSE;
-		browserinfo.bLoading = TRUE;
+		browserinfo.bLoading = isLoading;
 		CBrowserImpl::GetInstance()->SendCoreMsg(&browserinfo);
-	}
-
-}
-
-
-void  ClientHandler::OnLoadEnd(CefRefPtr<CefBrowser> browser,
-							   CefRefPtr<CefFrame> frame,
-							   int httpStatusCode)
-{
-	if(!browser->IsPopup() && frame->IsMain())
-	{
-		core_msg_browserinfo browserinfo;
-		browserinfo.bGet = FALSE;
-		browserinfo.bLoading = FALSE;
-		CBrowserImpl::GetInstance()->SendCoreMsg(&browserinfo);
-		m_bLoadingPage = false ; //set flag to indicate that page has been loaded      
+		if (!isLoading)
+		{
+			m_bLoadingPage = false ; //set flag to indicate that page has been loaded      
+		}	
 	}
 }
 
@@ -382,6 +370,20 @@ void ClientHandler::OnPopupSize(CefRefPtr<CefBrowser> browser,
 	{
 		popup_rect_ = rect;
 	}
+
+	if (popup_rect_.x < 0)
+	{
+		popup_rect_.x = 0;
+	}
+	if (popup_rect_.y < 0)
+	{
+		popup_rect_.y = 0;
+	}	
+	if (popup_rect_.x + popup_rect_.width > m_nWidth)
+		popup_rect_.width = m_nWidth - popup_rect_.x;
+	if (popup_rect_.y + popup_rect_.height > m_nHeight)
+		popup_rect_.height = m_nHeight  - popup_rect_.y ;
+
 }
 bool ClientHandler::GetViewRect(CefRefPtr<CefBrowser> browser,
 								   CefRect& rect) 
@@ -399,7 +401,15 @@ bool ClientHandler::GetRootScreenRect(CefRefPtr<CefBrowser> browser,
 									 CefRect& rect)
 {
 	REQUIRE_UI_THREAD();
-	return GetViewRect(browser,rect);
+	
+	CRect rcWindow;
+	::GetWindowRect(CBrowserImpl::GetInstance()->GetParent(),rcWindow);
+	rect.x = rcWindow.left;
+	rect.y = rcWindow.top;
+	rect.height = rcWindow.Height();
+	rect.width = rcWindow.Width();
+//	return GetViewRect(browser,rect);
+return true;
 
 }
 void ClientHandler::OnPopupShow(CefRefPtr<CefBrowser> browser,
