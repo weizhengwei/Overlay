@@ -74,11 +74,11 @@ public:
 	CUIFriendDlgSecondary(CUIChatMgrSecondary* pMgr,CWindow* pParent = NULL);
 	~CUIFriendDlgSecondary();
 	BEGIN_MSG_MAP(CUIFriendDlgSecondary)
+        CHAIN_MSG_MAP(CUIFriendDlgBase)
 		MESSAGE_HANDLER(WM_COREMESSAGE, OnProcessMsg)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		MSG_WM_SIZE(OnSize)
 		MSG_WM_PAINT(OnPaint)
-		CHAIN_MSG_MAP(CUIFriendDlgBase)
 	END_MSG_MAP()
 public:
 	LRESULT OnProcessMsg(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);

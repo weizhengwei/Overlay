@@ -34,32 +34,12 @@
 //////////////////////////////////////////////////////////////////////////
 // arc main chat system,responsible for all actually im logic and support secondary im system.
 //////////////////////////////////////////////////////////////////////////
-//begin the class
-
-/*
- *@ class CIMMessageWndPrimary
- *@ using for the message center
- */
-class CIMMessageWndPrimary : public CIMMessageWndBase
-{
-public:
-	CIMMessageWndPrimary(CUIChatMgrBase* pMgr):CIMMessageWndBase(pMgr){}
-	virtual ~CIMMessageWndPrimary(){}
-	BEGIN_MSG_MAP(CIMMessageWndPrimary)
-		MESSAGE_HANDLER(WM_HANDLE_COPYDATE_MESSAGE, OnHandleCopyDateMessage)
-		MESSAGE_HANDLER(WM_HANDLE_SYNC_SENT_MESSAGE, OnHandleSyncSentMessage)
-		CHAIN_MSG_MAP(CIMMessageWndBase)
-	END_MSG_MAP()
-
-	LRESULT OnHandleCopyDateMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
-	LRESULT OnHandleSyncSentMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
-};
 
 class CUIChatMgrPrimary : public CUIChatMgrBase,public CIMEventCallBack
 {
 public:
 	CUIChatMgrPrimary();
-	virtual ~CUIChatMgrPrimary();	
+	virtual ~CUIChatMgrPrimary();
 
 public://CIMEventCallBack interface
 	virtual void HandlePresence(_tstring tsUserName, Presence::PresenceType presence);
@@ -70,7 +50,6 @@ public://CIMEventCallBack interface
 	virtual void HandleRosterArrive();
 
 public:
-	virtual CIMMessageWndBase*	CreateMessageWndObj();
 	virtual CUIFriendDlgBase*  CreateFriendDlgObj();
 	virtual CUIChatDlgBase*    CreateChatDlgObj(_ITEM_BASE_INFO info);
 	virtual CUIStatusDlgBase*  CreateStatusDlgObj();
@@ -143,11 +122,17 @@ public:
 	// message map and handlers
 	BEGIN_MSG_MAP(CUIFriendDlgPrimary)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
+		MESSAGE_HANDLER(WM_UPDATE_CHAT_STATUS, OnUpdateStatus)
+		MESSAGE_HANDLER(WM_HANDLE_SYNC_SENT_MESSAGE, OnHandleSyncSentMessage)
+		MESSAGE_HANDLER(WM_HANDLE_COPYDATE_MESSAGE, OnHandleCopyDateMessage)
 		MSG_WM_PAINT(OnPaint)
 		CHAIN_MSG_MAP(CUIFriendDlgBase)
 	END_MSG_MAP()
 protected:
 	LRESULT OnInitDialog(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
+	LRESULT OnUpdateStatus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
+	LRESULT OnHandleSyncSentMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
+	LRESULT OnHandleCopyDateMessage(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
 
 /********************************************************/
 /*					virtual functions					*/
@@ -211,7 +196,6 @@ protected:
 protected:
 	virtual void ClearLog(LPCTSTR lpUserName);
 	virtual void ClickFriend();
-	virtual void SaveChatMessageLog(const MSG_LOG_ELEMENT &msg);
 
 private:
 	void UpdateProfile();

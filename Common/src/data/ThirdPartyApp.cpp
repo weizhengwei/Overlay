@@ -40,7 +40,7 @@
 #include "log/local.h"
 #include "data/Tracking.h"
 #include "data/Overlay.h"
-#include "detour/detour.h"
+#include "detour/detours.h"
 #include "data/GameInfo.h"
 #include "tinyxml\tinyxml.h"
 #include <shellapi.h>
@@ -795,7 +795,7 @@ bool CThirdPartyApp::SilenceInstallProc()
 				FALSE, CREATE_DEFAULT_ERROR_MODE, NULL, pszCurDir, &si, &pi))
 			{
 				DWORD dwErr = GetLastError();
-				return false;
+				//return false;
 			}
 
 			while(WAIT_OBJECT_0 != WaitForSingleObject(pi.hProcess, 1000))
@@ -3107,9 +3107,9 @@ bool CThirdPartyApp::CreateGameProcess(LPCSTR lpExecuteFile, LPCSTR lpApplicatio
 		{ _T("nw"),		2002, 	_T("all"), 	_T("") },
 		//{ _T("apb"),	4001, 	_T("all"), 	_T("") },
 		//{ _T("dzl"),	4100, 	_T("all"), 	_T("") },
-		//{ _T("sc"),	4200, 	_T("all"), 	_T("") },
+		{ _T("sc"),	4200, 	_T("all"), 	_T("") },
 		//{ _T("sk"), 	4400, 	_T("all"), 	_T("") },
-		//{ _T("pwo"), 	4600, 	_T("all"), 	_T("") },
+		{ _T("pwo"), 	4600, 	_T("all"), 	_T("") },
 		{ _T("tl"), 	5000, 	_T("all"), 	_T("") },
 		{ _T("tl2"), 	5001, 	_T("all"), 	_T("") },
 	};

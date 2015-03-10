@@ -40,4 +40,5 @@ public:
 
 	static BOOL IsNetworkAlive();
     static WORD FileMachineType(LPCSTR lpExecuteFile);
+   
 };

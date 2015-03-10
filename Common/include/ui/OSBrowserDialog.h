@@ -43,8 +43,6 @@ public:
 	void SetLoadBarPoint(CPoint &pt);
 	//must before  start
 	void SetCookieFolder(_tstring & strCookieFolder){m_strCookieFolder = strCookieFolder;}
-
-	void StartOSbrowser();
 	DECLARE_MESSAGE_MAP()
 public:
 	BOOL m_bFullMode;
@@ -55,8 +53,6 @@ public:
 	HCURSOR m_hBrowserCursor;
 	//must before  start
 	_tstring m_strCookieFolder;
-	Mutex m_lockBrowser;
-	PROCESS_INFORMATION m_ProcessInfo;
 
 protected:
 	long run();
@@ -76,6 +72,7 @@ private:
 	CCoreMsgClient m_msgClient;
 	UINT m_uBrowserType;
 	HWND m_hMsgClient;
+	PROCESS_INFORMATION m_ProcessInfo;
 	CRect m_defRect;
 	CRect m_defBrowserRect;
 	CArcShareMemMgr<arcbrowser_sm_header>  *m_psmMgr;
@@ -87,6 +84,5 @@ private:
 	CUILoadingBar m_wndLoadingBar;
 	BOOL m_bLoadBarShow;
 	CPoint m_LoadBarPoint;
-	
 	
 };

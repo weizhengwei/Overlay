@@ -112,7 +112,7 @@ bool  CUIChatMgrSecondary::InitChatSystem(HWND hWnd)
 	BOOL bRet = m_coreMsgClient.Initialize(this,(DWORD)hWnd,ARC_IM_SERVER_NAME);
 	if (bRet)
 	{
-		m_coreMsgClient.Connect(TRUE);
+		m_coreMsgClient.Connect();
 	}
 	return (bRet == TRUE) ? true : false;
 }
@@ -399,14 +399,12 @@ CUIFriendDlgSecondary::~CUIFriendDlgSecondary()
 
 LRESULT CUIFriendDlgSecondary::OnProcessMsg(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled)
 {
+	bHandled = true;
 	core_msg_header * pHeader = (core_msg_header *)lParam;
 	if (!pHeader)
 	{
 		return 0L;
 	}
-
-	CUIFriendDlgBase::OnProcessMsg(uMsg, wParam, lParam, bHandled);
-
 	switch(pHeader->dwCmdId)
 	{
 	case ARC_CHAT_MSG_FRIEND_LIST_RESP:

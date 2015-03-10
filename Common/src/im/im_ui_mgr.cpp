@@ -13,30 +13,6 @@ const static unsigned int CSU_LOGIN_TIMER_ELAPSE = 2000;
 const static unsigned int CUS_SEARCH_TIMER = 101;
 const static unsigned int CUS_SEARCH_TIMER_ELAPSE_BASE = 300;
 
-
-LRESULT CIMMessageWndBase::OnUpdateLoadedAvatar( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled )
-{
-	if (m_pUIChatMgr->IsFriendDlgValid())
-	{
-		m_pUIChatMgr->GetFriendDlg()->HandleFriendAvatar(_tstring((LPCTSTR)lParam), NULL);
-	}
-	free((void*)lParam);
-	return 0L;
-}
-
-LRESULT CIMMessageWndBase::OnUpdateRefreshPresence( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled )
-{
-	if (m_pUIChatMgr->IsFriendDlgValid())
-	{
-		m_pUIChatMgr->GetFriendDlg()->HandleFriendPresence(_tstring((LPCTSTR)lParam), ArcPresenceType::Available);
-	}
-	free((void*)lParam);
-	return 0L;
-}
-
-//end of the CIMMessageWndBase class
-/*********************************************************************************************/
-
 CUITabMgrDlg::CUITabMgrDlg(CUIChatMgrBase* pMgr):
 m_pTabCtrl(NULL),
 m_pMgr(pMgr),
@@ -644,7 +620,6 @@ CUIFriendDlgBase:: ~CUIFriendDlgBase()
 
 int CUIFriendDlgBase::EndInit()
 {
-	m_pUIChatMgr->InitIMMessageWnd();
 	RECT rc;
 	GetClientRect(&rc);
 	if (m_pTree->IsValid())
@@ -847,6 +822,7 @@ LRESULT CUIFriendDlgBase::OnEnKillfocusRicheditFriendSearch(UINT uMsg, WPARAM wP
 
 LRESULT CUIFriendDlgBase::OnProcessMsg(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled)
 {
+    bHandled = false;
 	core_msg_header * pHeader = (core_msg_header *)lParam;
 	if (!pHeader)
 	{
@@ -1533,9 +1509,6 @@ LRESULT CUIFriendDlgBase::OnClose(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL 
 
 LRESULT CUIFriendDlgBase::OnInitFriendList( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled )
 {
-	if (IsInitFriendListFinished())
-		return 0L;
-
 	::KillTimer(m_hWnd, CSU_LOGIN_TIMER);
 	::SetTimer(m_hWnd, CSU_LOGIN_TIMER, CSU_LOGIN_TIMER_ELAPSE, NULL);
 	return 0L;
@@ -1547,6 +1520,20 @@ LRESULT CUIFriendDlgBase::OnInitFriendListInOverlay( UINT uMsg, WPARAM wParam, L
 	if (m_pUIChatMgr->GetSefPresence() < (int)ArcPresenceType::XA)
 		InitFriendList();
 	
+	return 0L;
+}
+
+LRESULT CUIFriendDlgBase::OnUpdateLoadedAvatar( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled )
+{
+	HandleFriendAvatar(_tstring((LPCTSTR)lParam), NULL);
+	free((void*)lParam);
+	return 0L;
+}
+
+LRESULT CUIFriendDlgBase::OnUpdateRefreshPresence( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled )
+{
+	HandleFriendPresence(_tstring((LPCTSTR)lParam), ArcPresenceType::Available);
+	free((void*)lParam);
 	return 0L;
 }
 
@@ -1630,8 +1617,7 @@ long CUIFriendDlgBase::run()
 				continue;
 
 			_tcsncpy(lpUserName, tsUserName.c_str(), MAX_PATH-1);
-			::PostMessage(m_pUIChatMgr->GetMessageHWND(), WM_UPDATE_REFRESH_PRESENCE, 0, (LPARAM)(lpUserName));
-			Sleep(50);
+			::PostMessage(m_hWnd, WM_UPDATE_REFRESH_PRESENCE, 0, (LPARAM)(lpUserName));
 		}
 		else if (m_wqAvatarFriends.size() > 0)
 		{
@@ -1644,12 +1630,11 @@ long CUIFriendDlgBase::run()
 				continue;
 
 			_tcsncpy(lpUserName, tsUserName.c_str(), MAX_PATH-1);
-			::PostMessage(m_pUIChatMgr->GetMessageHWND(), WM_UPDATE_LOADED_AVATAR, 0, (LPARAM)(lpUserName));
-			Sleep(100);
+			::PostMessage(m_hWnd, WM_UPDATE_LOADED_AVATAR, 0, (LPARAM)(lpUserName));
 		}
 		else 
 		{
-			Sleep(500);
+			Sleep(100);
 			continue;
 		}
 	}
@@ -2085,8 +2070,6 @@ void CUIChatDlgBase::HandleRecvMsg(const MSG_LOG_ELEMENT &msg, bool bOfflineMess
 		m_pEditOutPut->SetLineSpacing(0);
 		m_pEditOutPut->PostMessage(WM_VSCROLL,SB_BOTTOM,0);
 	}
-
-	SaveChatMessageLog(msg);
 }
 
 void CUIChatDlgBase::SendChatMsg()
@@ -2672,7 +2655,10 @@ LRESULT CUIStatusDlgBase::OnItemClick(UINT uMsg, WPARAM wParam, HWND hwnd, BOOL 
 	if ((int)m_LBSetting.GetItemData(Index) != m_pUIChatMgr->GetFriendDlg()->GetCurPresence())
 	{
 		int loginStatus = (int)m_LBSetting.GetItemData(Index);
-		m_pUIChatMgr->SetLoginStatus(loginStatus);
+		if (loginStatus < (int)ArcPresenceType::XA)
+		{
+			m_pUIChatMgr->SetLoginStatus(loginStatus);
+		}
 		m_pUIChatMgr->SetPresence(loginStatus);
 	}
 	ShowWindow(SW_HIDE);
@@ -2693,7 +2679,6 @@ CUIChatMgrBase::CUIChatMgrBase()
 	:m_pFriendDlg(NULL)
 	,m_pStatusDlg(NULL)
 	,m_pCurTabMgrDlg(NULL)
-	,m_pMessageWnd(NULL)
 {
 	m_ChatDlgMap.clear();
 	m_vecTabMgr.clear();
@@ -2701,19 +2686,11 @@ CUIChatMgrBase::CUIChatMgrBase()
 CUIChatMgrBase::~CUIChatMgrBase()
 {
 	DestroyChats();
-	if (m_pMessageWnd) 
-	{
-		if (::IsWindow(m_pMessageWnd->m_hWnd))
-		{
-			m_pMessageWnd->DestroyWindow();
-		}
-		delete m_pMessageWnd;
-	}
 }
 
 void CUIChatMgrBase::OnCoreMessage(HWND hFrom, core_msg_header * pHeader)
 {
-	if (!pHeader || !IsFriendDlgValid() || !IsStatusDlgValid())
+	if (!pHeader || !m_pFriendDlg || !m_pFriendDlg->IsWindow())
 	{
 		return ;
 	}
@@ -2722,46 +2699,12 @@ void CUIChatMgrBase::OnCoreMessage(HWND hFrom, core_msg_header * pHeader)
 	{
 	case  ARC_CHAT_MSG_PRESENCE_CHANGED:
 		{  //Notify relative UI update.
-			im_msg_presence_changed *pCmd = (im_msg_presence_changed*)pHeader;
-			if (!pCmd) 
-				return;
-
-			if (_tcscmp(GetUserName(), pCmd->szUserName) == 0)
-			{//my status changed
-				//handle self presence to the friend dlg;
-				//handle self presence to the status dlg;
-				m_pFriendDlg->HandleSelfPresence((ArcPresenceType)(pCmd->iType));
-				SendCoreMsgDirectly(m_pStatusDlg->m_hWnd, pHeader);
-			}
-			else
-			{//one of my friend's status changed
-				_tstring tsUserName = pCmd->szUserName;
-				m_pFriendDlg->EnterFriendPresenceChangeTask(tsUserName);
-			}
-
-			CUIChatDlgBase* pDlg = GetChatDailog(((im_msg_presence_changed*)pHeader)->szUserName);
-			if (pDlg && ::IsWindow(pDlg->m_hWnd))
+			SendCoreMsgDirectly(m_pFriendDlg->m_hWnd,pHeader);
+			if (m_pStatusDlg)
 			{
-				SendCoreMsgDirectly(pDlg->m_hWnd,pHeader);
+				SendCoreMsgDirectly(m_pStatusDlg->m_hWnd,pHeader);
 			}
-		}
-		break;
-	case ARC_CHAT_MSG_AVATAR_CHANGED:
-		{
-			//Notify relative UI update.
-			im_msg_avatar_changed *pCmd = (im_msg_avatar_changed*)pHeader;
-			if (!pCmd) return;
-			if (_tcscmp(GetUserName(), pCmd->szUserName) == 0)
-			{//my avatar changed
-				m_pFriendDlg->HandleSelfAvatar(pCmd->szPath);
-			}
-			else
-			{//one of my friend's avatar changed
-				_tstring tsUserName = pCmd->szUserName;
-				m_pFriendDlg->EnterFriendAvatarChangeTask(tsUserName);
-			}
-
-			CUIChatDlgBase* pDlg = GetChatDailog(((im_msg_avatar_changed*)pHeader)->szUserName);
+			CUIChatDlgBase* pDlg = GetChatDailog(((im_msg_presence_changed*)pHeader)->szUserName);
 			if (pDlg && ::IsWindow(pDlg->m_hWnd))
 			{
 				SendCoreMsgDirectly(pDlg->m_hWnd,pHeader);
@@ -2796,6 +2739,18 @@ void CUIChatMgrBase::OnCoreMessage(HWND hFrom, core_msg_header * pHeader)
 				{
 					SendCoreMsgDirectly(pDlg->m_hWnd,pHeader);
 				}
+			}
+		}
+		break;
+	case ARC_CHAT_MSG_AVATAR_CHANGED:
+		{
+			//Notify relative UI update.
+			SendCoreMsgDirectly(m_pFriendDlg->m_hWnd,pHeader);
+
+			CUIChatDlgBase* pDlg = GetChatDailog(((im_msg_avatar_changed*)pHeader)->szUserName);
+			if (pDlg && ::IsWindow(pDlg->m_hWnd))
+			{
+				SendCoreMsgDirectly(pDlg->m_hWnd,pHeader);
 			}
 		}
 		break;
@@ -3054,25 +3009,6 @@ bool CUIChatMgrBase:: LoadConfig(_IM_BASE_CONFIG& settings)
 	settings.bDisableFlashWindow	= GetPrivateProfileInt(INI_CFG_CHAT, INI_CFG_CHAT_DISFLASH_NEW_MSG, 0, GetUserProfilePath().c_str());
 	settings.bChatMsgNotify			= GetPrivateProfileInt(INI_CFG_NOTIFY, INI_CFG_NOTIFY_CHAT_MESSAGE, 1, GetUserProfilePath().c_str());
 	return true;
-}
-
-bool CUIChatMgrBase::InitIMMessageWnd()
-{
-	m_pMessageWnd = CreateMessageWndObj();
-	if (m_pMessageWnd)
-	{
-		m_pMessageWnd->Create(HWND_MESSAGE);
-		if (m_pMessageWnd->IsWindow())
-		{
-			return true;
-		}
-		else
-		{
-			delete m_pMessageWnd;
-		}
-	}
-
-	return false;
 }
 
 bool  CUIChatMgrBase::ShowFriendDlg(im_dialog_params para) 
@@ -3493,4 +3429,3 @@ int CUIChatMgrBase::GetSefPresence()
 	else
 		return (int)ArcPresenceType::Unavailable;
 }
-

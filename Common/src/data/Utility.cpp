@@ -19,6 +19,7 @@
 #include <Sensapi.h>
 #include <Wininet.h>
 
+
 #pragma comment(lib, "Sensapi.lib")
 
 static const char * _szZipPwd = "Arc211xx";
@@ -1302,3 +1303,4 @@ WORD CUtility::FileMachineType( LPCSTR lpExecuteFile )
 
     return ifh.Machine;
 }
+

@@ -45,10 +45,6 @@ void CFriendManager::Reset()
 }
 void CFriendManager::handleRoster(const Roster& roster)
 {
-	if (!m_pMgr) return;
-
-	if (!m_pMgr->GetXmppClient().IsWaitForRoster()) return;
-	
 	//m_bRosterArrive = true;
 	m_lockFriendList.lock();
 	Roster::const_iterator iter=roster.begin();
@@ -81,7 +77,12 @@ void CFriendManager::handleRoster(const Roster& roster)
 	m_lockFriendList.unlock();
 
 	UpdatePresenceFromTempVec();
-    m_pMgr->HandleRosterArrive();
+
+	if (m_pMgr)
+	{
+        m_pMgr->HandleRosterArrive();
+	}
+
 }
 
 void CFriendManager::handleNonrosterPresence(const Presence& presence )

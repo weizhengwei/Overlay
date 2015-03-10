@@ -20,7 +20,7 @@
 #define	FILE_DLL_OVERLAY8	_T("ArcD3D8Overlay.dll")
 #define	FILE_DLL_OVERLAY9	_T("ArcD3D9Overlay.dll")
 #define	FILE_DLL_OVERLAY11	_T("ArcD3D11Overlay.dll")
-#define	FILE_DLL_OVERLAYSB	_T("ArcOverlayStub.dll")
+#define	FILE_DLL_OVERLAYSB	("\ArcOverlayStub.dll")
 #define FILE_DLL_PLUGINFF	_T("npArcPluginFF.dll")
 #define FILE_DLL_PUGLINIE	_T("ArcPluginIE.dll")
 #define FILE_DLL_SDK		_T("ArcSDK.dll")

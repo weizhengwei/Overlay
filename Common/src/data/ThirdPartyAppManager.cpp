@@ -50,6 +50,7 @@
 #include <algorithm>
 #include "log/local.h"
 #include "download/PDLDownloader.h"
+#include "detour/detours.h"
 
 //---------------------------
 #define	FILE_CFG_GAME			_T("gameinfo.xml")
@@ -112,6 +113,24 @@ ARC_LANGUAGE ArcLanguageArray[] =
 
 #define ARC_LANGUAGE_COUNT (sizeof(ArcLanguageArray)/sizeof(ARC_LANGUAGE))
 
+
+BOOL CoreCreateProcessWithDll(LPCSTR lpApplicationName, LPSTR lpCommandLine, BOOL bInheritHandles, DWORD dwCreationFlags, 
+                                        LPCSTR lpCurrentDirectory, LPPROCESS_INFORMATION ppi)
+{
+    char szPath[MAX_PATH];
+    if(GetModuleFileNameA(NULL, szPath, MAX_PATH))
+    {  
+        PathRemoveFileSpecA(szPath);  
+        PathAppendA(szPath, FILE_DLL_OVERLAYSB);
+    }  
+
+    STARTUPINFOA si = {0};
+    si.cb = sizeof(STARTUPINFOA);
+
+    return DetourCreateProcessWithDllA(lpApplicationName, lpCommandLine, NULL, NULL, bInheritHandles, dwCreationFlags, NULL, lpCurrentDirectory, &si, NULL, szPath, NULL); 
+
+}
+
 //////////////////////////////////////////////////////////////////////////
 CThirdPartyAppManager g_appManager;
 
@@ -172,18 +191,8 @@ CThirdPartyAppManager::~CThirdPartyAppManager()
 
 bool CThirdPartyAppManager::Init()
 {
-	m_hModOverlayStub = LoadLibrary(FILE_DLL_OVERLAYSB);
-	if(!m_hModOverlayStub)
-	{
-		return false;
-	}
-	m_CreateProcessWithDll = (FUNC_CreateProcessWithDll)GetProcAddress(m_hModOverlayStub, ("CoreCreateProcessWithDll"));
-	if(!m_CreateProcessWithDll)
-	{
-		FreeLibrary(m_hModOverlayStub);
-		m_hModOverlayStub = NULL;
-		return false;
-	}
+	m_CreateProcessWithDll = (FUNC_CreateProcessWithDll)CoreCreateProcessWithDll/*GetProcAddress(m_hModOverlayStub, ("CoreCreateProcessWithDll"))*/;
+
 
 	if(!LoadAppData())
 	{
@@ -418,13 +427,6 @@ bool CThirdPartyAppManager::Uninit()
 	}
 	m_mapExternalApp.clear();
 	___AutoSRWBlockEnd____
-
-	if(m_hModOverlayStub)
-	{
-		FreeLibrary(m_hModOverlayStub);
-		m_hModOverlayStub = NULL;
-		m_CreateProcessWithDll = NULL;
-	}
 
 	return true;
 }

@@ -33,7 +33,6 @@
 
 #define OFFLINE_MESSAGE_EXTENSION_TYPE	100
 #define COMPANY_NAME		_T("Perfect World")
-#define CONNECTING_TIMEOUT	60000
 
 // ---- OfflineExtension begin ----
 OfflineMessageExtension::OfflineMessageExtension(const Tag* tag)
@@ -79,9 +78,6 @@ CXmppClient::CXmppClient(CIMManager* pMgr)
 {
 	m_nDisconnectStatus = (int)ArcPresenceType::Available;
 	m_nLoginWithStatus = (int)ArcPresenceType::Available;
-	m_bConnecting = false;
-	m_bWaitingForRoster = false;
-	m_dwConnectTime = 0;
 	ResetXmppClient();
 }
 CXmppClient::~CXmppClient(){}
@@ -91,10 +87,11 @@ void CXmppClient::ResetXmppClient()
 	m_pOfflineClient = NULL;
 	m_pClient = NULL;
 	m_pOMExtension = NULL;
+	m_hThread = NULL;
 
 	m_bHasWaitForRun = false;
 	m_bRosterArrive = false;
-	m_bReceiving = false;
+	m_bExitRecvThread = false;
 	m_nStatus = (int)ArcPresenceType::Unavailable;
 
 	m_bOfflineMessageReturnFinished = false;
@@ -267,6 +264,7 @@ void CXmppClient::handleMessage(const Message& msg, MessageSession * session)
 
 void CXmppClient::handleEvent(const Event& event)
 {
+	MutexGuard m(&m_thdLock); 
 	m_bAlive = true;
 }
 
@@ -349,11 +347,9 @@ void CXmppClient::handleFlexibleOfflineResult( FlexibleOfflineResult foResult )
 
 void CXmppClient::HandleRosterArrive()
 {
-	m_bWaitingForRoster = false;
+	MutexGuard m(&m_thdLock); 
 	m_bAlive = true;
 	m_bRosterArrive = true;
-	m_nStatus = (int)ArcPresenceType::Available;//must set the status before set m_bConnecting status;
-	m_bConnecting = false;
 	SetPresence((ArcPresenceType)m_nLoginWithStatus);
 }
 
@@ -371,6 +367,54 @@ ConnectionError CXmppClient::ClientRecv( bool& bHasExcept, int nTimeOut /*= 20*/
 	}
 
 	return ce;
+}
+
+DWORD WINAPI CXmppClient::RecvDataProc(void* param)
+{
+	do 
+	{
+		CXmppClient* pThis = (CXmppClient*)param;
+		if (!pThis) break; 
+
+		ConnectionError ce = ConnNoError;
+		while(ce == ConnNoError)
+		{
+			if (pThis->m_bExitRecvThread)
+			{//the thread killed by set m_bStopInRecvThread/m_bReconnectInRecvThread value;
+				break;
+			}
+
+			if (!pThis->m_pClient)
+			{
+				break;
+			}
+
+			bool bHasExcept = false;
+			ce = pThis->ClientRecv(bHasExcept, 20);
+			if (bHasExcept)
+			{
+				break;
+			}
+		} 
+		
+		pThis->m_bRosterArrive = false;
+		
+		if (!pThis->m_bExitRecvThread)
+		{//NOT killed by run thread(user self), the killer may be the server or the local-network;
+			LPXMPP_TASK_RECONNECT lpTask = new _XMPP_TASK_RECONNECT();
+			lpTask->_bImmediately = false;
+			pThis->m_wSeniorTaskQueue.enter((LPXMPP_TASK_HEADER&)lpTask);
+			pThis->m_nDisconnectStatus = pThis->m_nStatus;
+		}
+		else
+		{
+			pThis->m_nDisconnectStatus = ArcPresenceType::Unavailable;
+		}
+
+		pThis->m_hThread = NULL;
+	} while (false);
+
+	return 0;
 }
 
 // Gloox-Recv thread functions end
@@ -395,7 +439,7 @@ long CXmppClient::run()
 		if (KeepAlive() && CheckLoginTimeOut()) {
 			//WaitForRun();
 		}else {
-			ReconnectClient(false);
+			ReRun(false);
 		}
 
 		/*
@@ -432,14 +476,11 @@ long CXmppClient::run()
 		case XMPP_TT_LOGOUT:
 			StopClient();
 			break;
-		case XMPP_TT_RELOGIN:
-			ReStartClient(((LPXMPP_TASK_IM_RELOGIN)pTask)->tsToken);
-			break;
 		case XMPP_TT_RECONNECT:
-			ReconnectClient(((LPXMPP_TASK_RECONNECT)pTask)->_bImmediately, ((LPXMPP_TASK_RECONNECT)pTask)->_bOperatorByUser);
+			ReconnectClient(((LPXMPP_TASK_RECONNECT)pTask)->_bImmediately);
 			break;
 		case XMPP_TT_WAIT_FOR_RUN:
-			if (!m_bReceiving) Sleep(100);
+			Sleep(100);
 			break;
 		case XMPP_TT_CHECK_OFFLINE:
 			CheckOfflineSupport();
@@ -461,26 +502,6 @@ long CXmppClient::run()
 		}
 
 		SAFE_DELETE(pTask);
-
-		ConnectionError ce = ConnNoError;
-		if (m_bReceiving && m_pClient)
-		{
-			bool bHasExcept = false;
-			ce = ClientRecv(bHasExcept, 10);
-			if (bHasExcept || ce != ConnNoError)
-			{//recv error
-				m_bReceiving = false;
-				m_bRosterArrive = false;
-
-				m_nDisconnectStatus = m_nStatus;
-				ReconnectClient(true);
-			}
-			else
-			{
-				Sleep(20);
-			}
-		}
-
 	}//while loop end;
 
 	m_bRunning = false;
@@ -489,6 +510,7 @@ long CXmppClient::run()
 
 bool CXmppClient::KeepAlive()
 {
+	MutexGuard m(&m_thdLock); 
 	if (!m_bRosterArrive)
 	{
 		return true;
@@ -532,8 +554,9 @@ void CXmppClient::ReRun(bool bImmediately)
 
 bool CXmppClient::CheckLoginTimeOut()
 {
-	if (!m_bReceiving)
-	{//not start recv gloox message;
+	MutexGuard m(&m_thdLock); 
+	if (m_hThread == NULL)
+	{//not start login, not need to check;
 		return true;
 	}
 	if (m_bRosterArrive)
@@ -542,24 +565,15 @@ bool CXmppClient::CheckLoginTimeOut()
 	}
 	if ((::GetTickCount() - m_nlastLoginTime) >= m_config.dwLoginTimeOut)
 	{
-		if (m_bWaitingForRoster && m_bConnecting)
-		{
-			m_nlastLoginTime = ::GetTickCount();
-			m_bWaitingForRoster = false;			
-			m_bConnecting = false;
-		}
-		return false;
+		return m_bRosterArrive;
 	}
 	return true;
 }
 
-bool CXmppClient::StartClient(_tstring& tsToken)
+bool CXmppClient::StartClient(_tstring tsToken)
 {
 	if (m_bRosterArrive) return true;
-	if (!m_pMgr) 
-	{
-		return false;
-	}
+	if (!m_pMgr) return false; 
 	m_tsLoginToken = tsToken;
 
 	try
@@ -626,8 +640,8 @@ bool CXmppClient::StartClient(_tstring& tsToken)
 		bool bRet = false;
 		if(m_pClient->connect(false))
 		{
-			m_bReceiving = true;
-			bRet = true;
+			m_hThread = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)RecvDataProc,this,0,NULL);
+			if (m_hThread != NULL) bRet = true;
 		}
 
 		if (!bRet)
@@ -651,6 +665,12 @@ bool CXmppClient::StartClient(_tstring& tsToken)
 
 bool CXmppClient::StopClient()
 {
+	if (m_hThread != NULL)
+	{
+		m_bExitRecvThread = true;
+		WaitForSingleObject(m_hThread, INFINITE);
+	}
+
 	SetClientPresence((int)ArcPresenceType::Unavailable);
 	DestroyClient();
 	ResetXmppClient();
@@ -658,37 +678,17 @@ bool CXmppClient::StopClient()
 	return true;
 }
 
-bool CXmppClient::ReconnectClient(bool bImmediately, bool bOperatorByUser /*= false*/)
+bool CXmppClient::ReconnectClient(bool bImmediately)
 {
-	if (bOperatorByUser)
-	{
-		if (m_bRosterArrive)
-		{
-			return false;
-		}
-
-		if (m_bConnecting)
-		{
-			if (::GetTickCount() - m_dwConnectTime < CONNECTING_TIMEOUT)
-			{
-				m_pMgr->HandlePresence(m_config.sUserName, (Presence::PresenceType)ArcPresenceType::Unavailable);
-				return false;
-			}
-			m_bConnecting = false;
-			m_bWaitingForRoster = false;
-		}
-	}
-
 	StopClient();
-	m_pMgr->HandleReConnect(bImmediately);
+	GetIMToken(bImmediately);
 
 	return true;
 }
 
 bool CXmppClient::DestroyClient()
 {
-	//stop receive
-	m_bReceiving = false;
+	m_bExitRecvThread = false;
 	m_bRosterArrive = false;
 
 	try
@@ -716,6 +716,12 @@ bool CXmppClient::DestroyClient()
 		
 	}
 
+	return true;
+}
+
+bool CXmppClient::GetIMToken( bool bImmediately )
+{
+	m_pMgr->HandleReConnect(bImmediately);
 	return true;
 }
 
@@ -784,6 +790,14 @@ bool CXmppClient::RecvMessage()
 	if (lpElement != NULL)
 	{
 		m_pMgr->HandleRcvChatMsg(*lpElement, false);
+		m_pMgr->GetMsgLogMgr().AppendLog(
+			lpElement->_szUserName,
+			lpElement->_szRecvNick,
+			_tstring(lpElement->_szSenderNick).toUTF8().c_str(),
+			_tstring(lpElement->_szTime).toNarrowString().c_str(),
+			_tstring(lpElement->_szDate).toNarrowString().c_str(),
+			_tstring(lpElement->_szContent).c_str()
+			);
 	}
 
 	return true;
@@ -824,6 +838,14 @@ bool CXmppClient::RecvOffLineMessage()
 			if (nodeMsg.second != NULL)
 			{
 				m_pMgr->HandleRcvChatMsg(*(nodeMsg.second), true);
+				m_pMgr->GetMsgLogMgr().AppendLog(
+					nodeMsg.second->_szUserName,
+					nodeMsg.second->_szRecvNick,
+					_tstring(nodeMsg.second->_szSenderNick).toUTF8().c_str(),
+					_tstring(nodeMsg.second->_szTime).toNarrowString().c_str(),
+					_tstring(nodeMsg.second->_szDate).toNarrowString().c_str(),
+					_tstring(nodeMsg.second->_szContent).c_str()
+					);
 
 				if (m_pOfflineClient)
 				{
@@ -994,23 +1016,6 @@ bool CXmppClient::IMLogin( _tstring tsToken )
 	return false;
 }
 
-bool CXmppClient::IMReLogin( _tstring tsToken )
-{
-	if (m_bRunning)
-	{
-		while (m_wSeniorTaskQueue.size() > 0){
-			LPXMPP_TASK_HEADER lpTask = m_wSeniorTaskQueue.leave();
-			SAFE_DELETE(lpTask);
-		}
-
-		LPXMPP_TASK_IM_RELOGIN lpTask = new XMPP_TASK_IM_RELOGIN();
-		lpTask->tsToken = tsToken; 
-		m_wSeniorTaskQueue.enter(((LPXMPP_TASK_HEADER&)lpTask));
-		return true;
-	}
-	return false;
-}
-
 bool CXmppClient::IMReconnect( bool bImmediately )
 {
 	if (m_bRunning)
@@ -1022,7 +1027,6 @@ bool CXmppClient::IMReconnect( bool bImmediately )
 
 		LPXMPP_TASK_RECONNECT pTask = new XMPP_TASK_RECONNECT();
 		pTask->_bImmediately = bImmediately;
-		pTask->_bOperatorByUser = true;
 		m_wSeniorTaskQueue.enter((LPXMPP_TASK_HEADER&)pTask);
 		return true;
 	}
@@ -1060,55 +1064,6 @@ void CXmppClient::CheckOfflineMessage()
 		LPXMPP_TASK_CHECK_OFFLINE lpTask = new _XMPP_TASK_CHECK_OFFLINE();
 		m_wTaskQueue.enter((LPXMPP_TASK_HEADER&)lpTask);
 	}
-}
-
-bool CXmppClient::ReStartClient( _tstring& tsToken )
-{
-	if (m_bRosterArrive) 
-	{
-		SetConnecting(false);
-		return false;
-	}
-	
-	m_pMgr->GetFriendManager().Reset();
-	StopClient();
-	if ( StartClient(tsToken) )
-	{
-		m_bWaitingForRoster = true;
-		return true;
-	}
-	
-	SetConnecting(false);
-	m_pMgr->HandleReConnect(false);
-	return false;
-}
-
-void CXmppClient::SetLoginWithStatus( int nStatus )
-{
-	if (nStatus != ArcPresenceType::Unavailable) 
-	{
-		m_nLoginWithStatus = nStatus;
-	}
-}
-
-void CXmppClient::SetConnecting( bool bConnecting )
-{
-	m_bConnecting = bConnecting;
-	if (bConnecting)
-	{
-		m_dwConnectTime = ::GetTickCount();
-	}
-	else
-	{
-		m_bWaitingForRoster = false;
-	}
-}
-
-void CXmppClient::ManuallyDisconnect()
-{
-	m_nDisconnectStatus = ArcPresenceType::Unavailable;
-	m_bConnecting = false;
-	m_bWaitingForRoster = false;
 }
 
 //UI Thread functions end
@@ -1166,36 +1121,26 @@ void CXmppClientMgr::Unintialize()
 
 bool CXmppClientMgr::StartClient(const _tstring tsToken)
 {
-	bool bRet = true;
-	try {
-		if (IsRosterArrive() || !m_pMgr || tsToken.empty()) 
-		{
-			bRet = false; 
-		}
-		else
-		{
-			if (NULL == m_pCurClient) {
-				m_pCurClient = CXmppClient::GetInstance(m_pMgr, m_config);
-			}
+	try {    
+		if (!m_pMgr || tsToken.empty()) return false; 
 
-			if (NULL != m_pCurClient) {
-				bRet = m_pCurClient->IMReLogin(tsToken);
-			} else{
-				bRet = false;
-			}
+		if (NULL != m_pCurClient) {
+			m_pCurClient->IMLogout();
 		}
+
+		if (NULL == m_pCurClient) {
+			m_pCurClient = CXmppClient::GetInstance(m_pMgr, m_config);
+			if (m_pCurClient == NULL) return false;
+		}
+
+		m_pMgr->GetFriendManager().Reset();
+		return m_pCurClient->IMLogin(tsToken);
 
 	}catch(...){
-		bRet = false;
+		return false;
 	}
 
-	if (!bRet)
-	{
-		if (NULL != m_pCurClient) {
-			m_pCurClient->SetConnecting(false);
-		}
-	}
-	return bRet;
+	return false;
 }
 
 void CXmppClientMgr::StopClient()
@@ -1291,19 +1236,14 @@ int CXmppClientMgr::GetDisconnectPresence()
 
 void CXmppClientMgr::SetLoginWithStatus( int status )
 {
+	if (status >= (int)ArcPresenceType::XA) return;
+
 	try {
 		if(NULL == m_pCurClient) {
 			m_pCurClient = CXmppClient::GetInstance(m_pMgr, m_config);
 			if (NULL == m_pCurClient) return;
 		} 
-
-		if (status > (int)ArcPresenceType::XA) {
-			m_pCurClient->ManuallyDisconnect(); 
-		}else {
-			m_pCurClient->SetLoginWithStatus(status); 
-		}
-		
-
+		m_pCurClient->SetLoginWithStatus(status); 
 	}catch(...){
 	}
 }
@@ -1317,55 +1257,5 @@ bool CXmppClientMgr::IsSupportOfflineMessage()
 	}catch(...){
 	}
 	
-	return false;
-}
-
-bool CXmppClientMgr::IsRosterArrive()
-{
-	try {
-		if (NULL != m_pCurClient) {
-			return m_pCurClient->IsRosterArrive(); 
-		}
-	}catch(...){
-	}
-
-	return false;
-}
-
-void CXmppClientMgr::SetConnecting( bool bConnecting )
-{
-	try {
-		if(NULL == m_pCurClient) {
-			m_pCurClient = CXmppClient::GetInstance(m_pMgr, m_config);
-		} 
-
-		if (NULL != m_pCurClient) {
-			return m_pCurClient->SetConnecting(bConnecting); 
-		}
-	}catch(...){
-	}
-}
-
-bool CXmppClientMgr::IsConnecting()
-{
-	try {
-		if (NULL != m_pCurClient) {
-			return m_pCurClient->IsConnecting(); 
-		}
-	}catch(...){
-	}
-
-	return false;
-}
-
-bool CXmppClientMgr::IsWaitForRoster()
-{
-	try {
-		if (NULL != m_pCurClient) {
-			return m_pCurClient->IsWaitForRoster(); 
-		}
-	}catch(...){
-	}
-
 	return false;
 }

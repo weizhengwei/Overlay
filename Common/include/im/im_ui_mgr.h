@@ -37,24 +37,6 @@ using namespace String;
 
 class CUIChatMgrBase;
 
-class CIMMessageWndBase : public CWindowImpl<CIMMessageWndBase>
-{
-public:
-	CIMMessageWndBase(CUIChatMgrBase* pMgr):m_pUIChatMgr(pMgr){}
-	virtual ~CIMMessageWndBase(){}
-	BEGIN_MSG_MAP(CIMMessageWndBase)
-		MESSAGE_HANDLER(WM_UPDATE_LOADED_AVATAR, OnUpdateLoadedAvatar)
-		MESSAGE_HANDLER(WM_UPDATE_REFRESH_PRESENCE, OnUpdateRefreshPresence)
-	END_MSG_MAP()
-
-	LRESULT OnUpdateLoadedAvatar(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
-	LRESULT OnUpdateRefreshPresence(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
-
-protected:
-	CUIChatMgrBase*	m_pUIChatMgr;
-
-};
-
 class CUIFriendDlgBase: public CDialogImpl<CUIFriendDlgBase>, public Thread
 {
 	//pair<nickname,AvatarImage>
@@ -78,6 +60,8 @@ public:
 		MESSAGE_HANDLER(WM_TIMER, OnTimer)
 		MESSAGE_HANDLER(WM_INITFRIENDLIST, OnInitFriendList)
 		MESSAGE_HANDLER(WM_INITFRIENDLIST_IN_OVERLAY, OnInitFriendListInOverlay)
+		MESSAGE_HANDLER(WM_UPDATE_LOADED_AVATAR, OnUpdateLoadedAvatar)
+		MESSAGE_HANDLER(WM_UPDATE_REFRESH_PRESENCE, OnUpdateRefreshPresence)
 		COMMAND_HANDLER(IDC_RICHEDIT_FRIEND_SEARCH, EN_SETFOCUS, OnEnSetfocusRicheditFriendSearch)
 		COMMAND_HANDLER(IDC_RICHEDIT_FRIEND_SEARCH, EN_KILLFOCUS, OnEnKillfocusRicheditFriendSearch)
 		COMMAND_HANDLER(IDC_RICHEDIT_FRIEND_SEARCH, EN_CHANGE, OnEnChangeRicheditFriendSearch)
@@ -104,10 +88,6 @@ public:
 	}
 
 	void KillLoginTimer();
-
-public:
-	void EnterFriendPresenceChangeTask(_tstring &tsName){ m_wqPresenceFriends.enter(tsName); }
-	void EnterFriendAvatarChangeTask(_tstring &tsName){ m_wqAvatarFriends.enter(tsName); }
 
 
 /********************************************************/
@@ -212,6 +192,8 @@ protected:
 	LRESULT OnTimer(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
 	LRESULT OnInitFriendList(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
 	LRESULT OnInitFriendListInOverlay(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
+	LRESULT OnUpdateLoadedAvatar(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
+	LRESULT OnUpdateRefreshPresence(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled);
 	
 	void OnClickBtnSearchQuit(ISonicString *, LPVOID pReserve);
 	void OnAddFriendClick(ISonicString *, LPVOID pReserve);
@@ -461,7 +443,6 @@ public:
 
 protected:
 	virtual void ClickFriend(){}
-	virtual void SaveChatMessageLog(const MSG_LOG_ELEMENT &msg){}
 
 protected:
 	CUIChatMgrBase* m_pUIChatMgr;
@@ -513,13 +494,6 @@ class CUIChatMgrBase: public ICoreMsgCallback,public IDragDropCallback
 public:
 	CUIChatMgrBase();
 	virtual ~CUIChatMgrBase();
-
-public:
-	bool IsFriendDlgValid(){ return ((m_pFriendDlg != NULL)&&(m_pFriendDlg->IsWindow())); }
-	bool IsStatusDlgValid(){ return ((m_pStatusDlg != NULL)&&(m_pStatusDlg->IsWindow())); }
-	bool IsMessageWndValid(){ return ((m_pMessageWnd != NULL)&&(m_pMessageWnd->IsWindow())); }
-	HWND GetMessageHWND(){ return IsMessageWndValid() ? m_pMessageWnd->m_hWnd : NULL; }
-
 public:
 	virtual void		HandleCopyDateMessage(core_msg_header *pHeader)								{}
 	virtual void		OnCoreMessage(HWND hFrom, core_msg_header * pHeader);
@@ -542,7 +516,6 @@ public:
 	virtual int			GetFriendPresence(LPCTSTR lpUserName)										{ ITEM_BASE_INFO info; if (GetFriendInfo(lpUserName, &info)) return info.iType; }
 	virtual int			GetFriendsCount()															{ return 0; }
 public:
-	virtual CIMMessageWndBase*	CreateMessageWndObj()												{ return new CIMMessageWndBase(this); }
 	virtual CUIFriendDlgBase*	CreateFriendDlgObj()												{ return NULL; }
 	virtual CUIChatDlgBase*		CreateChatDlgObj(_ITEM_BASE_INFO info)								{ return NULL; }
 	virtual CUIStatusDlgBase*	CreateStatusDlgObj()												{ return NULL; }
@@ -554,7 +527,6 @@ public:
 	virtual void				ShowListWindow(CCoreListBox *pList,int nCmdShow)					{ if (pList) pList->ShowWindow(nCmdShow); }
 
 public:
-	virtual bool				InitIMMessageWnd();
 	virtual bool				ShowFriendDlg(im_dialog_params para);
 	virtual CUIChatDlgBase*		ShowChatDlg(_ITEM_BASE_INFO info,im_dialog_params para, bool bNeedShow = true);
 	virtual CUIChatDlgBase*		ShowChatDlg(_ITEM_BASE_INFO info, BOOL bOfflineMessage = FALSE, bool bManual =true,bool bShow = true,bool bActive = true);
@@ -614,7 +586,4 @@ protected:
 	_tstring m_tsUserName;
 	_tstring m_tsNickName;
 	_tstring m_tsSelfAvatarPath;
-
-protected:
-	CIMMessageWndBase*	m_pMessageWnd;
 };

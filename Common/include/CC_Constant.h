@@ -13,7 +13,6 @@ enum eBrowserPluginRequestType
 	PluginRequest_GotoWebPage,
     PluginRequest_GetAccountName,
     PluginRequest_GetGameTokenEx,
-    PluginRequest_GetAccountNameEx,
 };
 
 #define TOKEN_LENGTH                        16

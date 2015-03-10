@@ -141,7 +141,6 @@ long CBrowserDialog::run()
 		WaitForSingleObject(m_ProcessInfo.hProcess,INFINITE);
 		CloseHandle(m_ProcessInfo.hProcess);
 		CloseHandle(m_ProcessInfo.hThread);
-		Sleep(1000);
 	}
 }
 void CBrowserDialog::SetLoadBarRect()

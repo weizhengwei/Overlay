@@ -4,72 +4,6 @@
 #include "ui\PWPDlg.h"
 #include "data\UIString.h"
 
-LRESULT CIMMessageWndPrimary::OnHandleCopyDateMessage( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled )
-{
-	if (!m_pUIChatMgr->IsFriendDlgValid() || !m_pUIChatMgr->IsMessageWndValid())
-		return 0L;
-
-	CUIFriendDlgPrimary *pFriend = dynamic_cast<CUIFriendDlgPrimary *>(m_pUIChatMgr->GetFriendDlg());
-	CUIChatMgrPrimary *pPrimary = dynamic_cast<CUIChatMgrPrimary *>(m_pUIChatMgr);
-	core_msg_header *pHeader = (core_msg_header*)lParam;
-
-	if (!pHeader || !pPrimary || !pFriend)
-		return 0L;
-
-	bool bHasInitFriendList = pFriend->IsInitFriendListFinished();
-
-	switch(pHeader->dwCmdId)
-	{
-	case ARC_CHAT_MSG_PRESENCE_CHANGED:
-		{
-			im_msg_presence_changed* pMsg = (im_msg_presence_changed*)pHeader;
-			if (!bHasInitFriendList && pMsg->iType != Presence::PresenceType::Unavailable)
-			{
-				SAFE_DELETE(pHeader);
-			}
-		}
-		break;
-	case ARC_CHAT_MSG_FRIEND_DIVORCE:
-	case ARC_CHAT_MSG_AVATAR_CHANGED:
-	case ARC_CHAT_MSG_SEND_MSG_DONE:
-	case ARC_CHAT_MSG_RCV_MSG:
-		{
-			if (!bHasInitFriendList)
-			{
-				SAFE_DELETE(pHeader);
-			}
-		}
-		break;
-	default:
-		break;
-	}
-
-	if (pHeader)
-	{
-		pPrimary->HandleCopyDateMessage(pHeader);
-		delete pHeader;
-	}
-
-	return 0L;
-}
-
-LRESULT CIMMessageWndPrimary::OnHandleSyncSentMessage( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled )
-{
-	CUIChatMgrPrimary *pPrimary = dynamic_cast<CUIChatMgrPrimary *>(m_pUIChatMgr);
-	im_msg_handle_sync_sent_message *pMsg = (im_msg_handle_sync_sent_message*)lParam;
-	if (pPrimary && pMsg)
-	{
-		pPrimary->HandleSyncSentMessage(pMsg->szSelfName, pMsg->szContent, pMsg->szUser, pMsg->nType, pMsg->nTime, pMsg->nSyncID);
-	}
-
-	if (pMsg)
-	{
-		free((void*)pMsg);
-	}
-
-	return 0L;
-}
-
 CUIChatMgrPrimary::CUIChatMgrPrimary()
 {
 	m_bIsInGame = false;
@@ -81,72 +15,89 @@ CUIChatMgrPrimary::CUIChatMgrPrimary()
 
 void CUIChatMgrPrimary::HandlePresence(_tstring tsUserName, Presence::PresenceType presence)
 {
-	if (!IsFriendDlgValid() || !IsMessageWndValid())
+	if (m_pFriendDlg == NULL || !::IsWindow(m_pFriendDlg->m_hWnd))
 		return;
 
-	im_msg_presence_changed* pMsg = new im_msg_presence_changed;
-	lstrcpyn(pMsg->szUserName, tsUserName.c_str(), MAX_PATH-1);
-	pMsg->iType = presence;
+	if (!m_pFriendDlg->IsInitFriendListFinished() && presence != Presence::PresenceType::Unavailable)
+		return;
 
-	::PostMessage(m_pMessageWnd->m_hWnd, WM_HANDLE_COPYDATE_MESSAGE, 0, (LPARAM)pMsg);
+	im_msg_presence_changed msg;
+	lstrcpyn(msg.szUserName,tsUserName.c_str(),MAX_PATH-1);
+	msg.iType = presence;
+
+	::SendMessage(m_pFriendDlg->m_hWnd, WM_HANDLE_COPYDATE_MESSAGE, 0, (LPARAM)&msg);
 }
 
 void CUIChatMgrPrimary::HandleDivorce( _tstring tsName, _tstring tsNick )
 {
-	if (!IsFriendDlgValid() || !IsMessageWndValid())
+	if (m_pFriendDlg == NULL || !::IsWindow(m_pFriendDlg->m_hWnd))
 		return;
 
-	im_msg_friend_divorce* pMsg = new im_msg_friend_divorce;
-	lstrcpyn(pMsg->szUserName, tsName.c_str(), MAX_PATH-1);
-	lstrcpyn(pMsg->szNickName, tsNick.c_str(), MAX_PATH-1);
+	if (!m_pFriendDlg->IsInitFriendListFinished())
+		return;
 
-	::PostMessage(m_pMessageWnd->m_hWnd, WM_HANDLE_COPYDATE_MESSAGE, 0, (LPARAM)pMsg);
+	im_msg_friend_divorce msg;
+	lstrcpyn(msg.szUserName, tsName.c_str(), MAX_PATH-1);
+	lstrcpyn(msg.szNickName, tsNick.c_str(), MAX_PATH-1);
+	::SendMessage(m_pFriendDlg->m_hWnd, WM_HANDLE_COPYDATE_MESSAGE, 0, (LPARAM)&msg);
 }
 
 void CUIChatMgrPrimary::HandleAvartarChanged(_tstring tsUserName,_tstring szPath)
 {
-	if (!IsFriendDlgValid() || !IsMessageWndValid())
+	if (m_pFriendDlg == NULL || !::IsWindow(m_pFriendDlg->m_hWnd))
 		return;
 
-	im_msg_avatar_changed* pMsg = new im_msg_avatar_changed;
-	lstrcpyn(pMsg->szUserName,	tsUserName.c_str(),	MAX_PATH-1);
-	lstrcpyn(pMsg->szPath,		szPath.c_str(),		MAX_PATH-1);
+	if (!m_pFriendDlg->IsInitFriendListFinished())
+		return;
 
-	::PostMessage(m_pMessageWnd->m_hWnd, WM_HANDLE_COPYDATE_MESSAGE, 0, (LPARAM)pMsg);
+	im_msg_avatar_changed msg;
+	lstrcpyn(msg.szUserName,tsUserName.c_str(),MAX_PATH-1);
+	lstrcpyn(msg.szPath,szPath.c_str(),MAX_PATH-1);
+	::SendMessage(m_pFriendDlg->m_hWnd, WM_HANDLE_COPYDATE_MESSAGE, 0, (LPARAM)&msg);
 }
 
 void CUIChatMgrPrimary::HandleSendChatMsgDone(im_msg_send_msg_done msg)
 {
-	if (!IsFriendDlgValid() || !IsMessageWndValid())
+	if (m_pFriendDlg == NULL || !::IsWindow(m_pFriendDlg->m_hWnd))
 		return;
+
+	if (!m_pFriendDlg->IsInitFriendListFinished())
+		return;
+
+	::SendMessage(m_pFriendDlg->m_hWnd, WM_HANDLE_COPYDATE_MESSAGE, 0, (LPARAM)&msg);
 }
 
 void CUIChatMgrPrimary::HandleRcvChatMsg(MSG_LOG_ELEMENT msgEelement, bool bOfflineMessage /*= false*/)
 {
-	if (!IsFriendDlgValid() || !IsMessageWndValid())
+	if (m_pFriendDlg == NULL || !::IsWindow(m_pFriendDlg->m_hWnd))
 		return;
 
-	im_msg_rcv_msg* pMsg = new im_msg_rcv_msg;
-	pMsg->msg = msgEelement;
-	pMsg->bOfflineMessage = bOfflineMessage;
+	if (!m_pFriendDlg->IsInitFriendListFinished())
+		return;
 
-	::PostMessage(m_pMessageWnd->m_hWnd, WM_HANDLE_COPYDATE_MESSAGE, 0, (LPARAM)pMsg);
+	im_msg_rcv_msg msg;
+	msg.msg = msgEelement;
+	msg.bOfflineMessage = bOfflineMessage;
+	::SendMessage(m_pFriendDlg->m_hWnd, WM_HANDLE_COPYDATE_MESSAGE, 0, (LPARAM)&msg);
 }
 
 void CUIChatMgrPrimary::HandleRosterArrive()
 {//init member list when after login timer
-	if (!IsFriendDlgValid() || !IsMessageWndValid())
+	if (m_pFriendDlg == NULL || !::IsWindow(m_pFriendDlg->m_hWnd))
 		return;
 
-	::PostMessage(m_pFriendDlg->m_hWnd, WM_INITFRIENDLIST, 0, 0);
+	if (m_pFriendDlg->IsInitFriendListFinished())
+		return;
+
+	if (m_pFriendDlg)
+	{
+		::SendMessage(m_pFriendDlg->m_hWnd, WM_INITFRIENDLIST, 0, 0);
+	}
 }
 
-/*
- *@ this function is in the UI thread, so we send copy-date message directly here
- */
 void CUIChatMgrPrimary::HandleSyncSentMessage( LPCTSTR lpcSelfName, LPCTSTR lpcContent, LPCTSTR lpcUser, int nType, __int64 nTime, int nSyncId )
 {
-	if (!IsFriendDlgValid() || !IsMessageWndValid())
+	if (m_pFriendDlg == NULL || !::IsWindow(m_pFriendDlg->m_hWnd))
 		return;
 
 	if (!m_pFriendDlg->IsInitFriendListFinished())
@@ -171,11 +122,6 @@ void CUIChatMgrPrimary::HandleSyncSentMessage( LPCTSTR lpcSelfName, LPCTSTR lpcC
 	SendCoreMsg(m_msgServer.GetSelfWindow(), pMsg);
 
 	free((void*)pMsg);
-}
-
-CIMMessageWndBase* CUIChatMgrPrimary::CreateMessageWndObj()
-{
-	return new CIMMessageWndPrimary(this);
 }
 
 CUIFriendDlgBase*  CUIChatMgrPrimary::CreateFriendDlgObj()
@@ -355,7 +301,7 @@ void CUIChatMgrPrimary::OnCoreMessage(HWND hFrom, core_msg_header * pHeader)
 				im_msg_handle_sync_sent_message *pMsg = (im_msg_handle_sync_sent_message*)pHeader;
 				im_msg_handle_sync_sent_message *pNewMsg = (im_msg_handle_sync_sent_message*)malloc(pMsg->size());
 				memcpy((void*)pNewMsg, (void*)pMsg, pMsg->size());
-				::PostMessage(m_pMessageWnd->m_hWnd, WM_HANDLE_SYNC_SENT_MESSAGE, 0, (LPARAM)pNewMsg);
+				::PostMessage(m_pFriendDlg->m_hWnd, WM_HANDLE_SYNC_SENT_MESSAGE, 0, (LPARAM)pNewMsg);
 			}
 		}
 		break;
@@ -376,7 +322,6 @@ bool CUIChatMgrPrimary::UnInitChatSystem()
 {
    m_msgServer.Uninitialize();
    m_IMMgr.UnRegisterIMCallback(this);
-   DestroyChats();
    return true;
 }
 _tstring CUIChatMgrPrimary::GetStringFromId( LPCTSTR  lpszStr)
@@ -608,8 +553,8 @@ void CUIChatMgrPrimary::HandleCopyDateMessage( core_msg_header *pHeader )
 {
 	if (pHeader && pHeader->dwSize > 0)
 	{
-		SendCoreMsg(HWND_BROADCAST, pHeader);
-		SendCoreMsg(m_msgServer.GetSelfWindow(), pHeader);
+		SendCoreMsg(HWND_BROADCAST,pHeader);
+		SendCoreMsg(m_msgServer.GetSelfWindow(),pHeader);
 	}
 }
 
@@ -700,15 +645,7 @@ LRESULT CUIFriendDlgPrimary::OnInitDialog(UINT uMsg, WPARAM wParam, LPARAM lPara
 	pNickStr->Format(_T("/c=%x, font, font_height=14, font_face='Open Sans',align=1/%s"), FLP_NICKNAME_COLOR, sNick.c_str());
 	pNickStr->Redraw();
 
-	_tstring szPath = m_pUIChatMgr->GetBaseDir() + g_theSNSManager.GetUserCharData()._szHeaderPath.c_str();
-	if (::GetFileAttributes(szPath.c_str()) != INVALID_FILE_ATTRIBUTES)
-	{
-		if (m_pAvatar != NULL) 
-		{
-			m_pAvatar->Load(szPath.c_str());
-			UpdateAvatarPaint(m_pAvatar, m_nCurPressence);
-		}		
-	}
+	SendMessage(WM_UPDATE_CHAT_STATUS,0,Presence::Unavailable);//ensure the default head image can be displayed at the beginning.
 	
 	return EndInit();
 }
@@ -983,6 +920,22 @@ void CUIFriendDlgPrimary::SetStatusDlg(CUIStatusDlgPrimary *pStatus)
 	}
 }
 
+LRESULT CUIFriendDlgPrimary::OnUpdateStatus(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled)
+{
+	_tstring szPath = m_pUIChatMgr->GetBaseDir() + g_theSNSManager.GetUserCharData()._szHeaderPath.c_str();
+	if (::GetFileAttributes(szPath.c_str()) != INVALID_FILE_ATTRIBUTES)
+	{
+		if (m_pAvatar == NULL) 
+			return 0L;
+
+		m_pAvatar->Load(szPath.c_str());
+
+		// update the status image for new status
+		UpdateAvatarPaint(m_pAvatar, m_nCurPressence);
+	}
+	return 0L;
+}
+
 void CUIFriendDlgPrimary::InitFriendList()
 {
 	/*
@@ -1154,6 +1107,33 @@ void CUIFriendDlgPrimary::UpdateFriendListHeaderNum( bool bOnLine )
 	pSonicString->Format(_T("/c=%x, font, font_height=13, font_face='Open Sans', align=1/%s"), FLP_TMI_COLOR, tsOnLineNum.c_str());	
 }
 
+LRESULT CUIFriendDlgPrimary::OnHandleSyncSentMessage( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled )
+{
+	CUIChatMgrPrimary *pPrimary = dynamic_cast<CUIChatMgrPrimary*>(m_pUIChatMgr);
+	im_msg_handle_sync_sent_message *pMsg = (im_msg_handle_sync_sent_message*)lParam;
+	if (pPrimary && pMsg)
+	{
+		pPrimary->HandleSyncSentMessage(pMsg->szSelfName, pMsg->szContent, pMsg->szUser, pMsg->nType, pMsg->nTime, pMsg->nSyncID);
+	}
+
+	if (pMsg)
+	{
+		free((void*)pMsg);
+	}
+
+	return 0L;
+}
+
+LRESULT CUIFriendDlgPrimary::OnHandleCopyDateMessage( UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL & bHandled )
+{
+	core_msg_header *pHeader = (core_msg_header*)lParam;
+	if (pHeader)
+	{
+		m_pUIChatMgr->HandleCopyDateMessage(pHeader);
+	}
+	return 0L;
+}
+
 void CUIFriendDlgPrimary::StartSearch( _tstring szSearchText /*= _T("")*/ )
 {
 	if (!m_pUIChatMgr || m_nCurPressence >= (int)ArcPresenceType::XA)
@@ -1241,7 +1221,6 @@ LRESULT CUIStatusDlgPrimary::OnKillFocus(UINT uMsg, WPARAM wParam, LPARAM lParam
 	}
 	return 0;
 }
-
 CUIChatDlgPrimary::CUIChatDlgPrimary(CUIChatMgrPrimary* pMgr,_ITEM_BASE_INFO info):CUIChatDlgBase(pMgr,info)
 {
 	m_pAvatar = GetSonicUI()->CreateImage();
@@ -1339,20 +1318,4 @@ void CUIChatDlgPrimary::UpdateProfile()
 		m_pAvatar->Load(szPath.c_str());
 	}
 	UpdateAvatar(m_pAvatar, m_info.iType);
-}
-
-void CUIChatDlgPrimary::SaveChatMessageLog( const MSG_LOG_ELEMENT &msg )
-{
-	CUIChatMgrPrimary *pPrtMgr = dynamic_cast<CUIChatMgrPrimary *>(m_pUIChatMgr);
-	if (pPrtMgr)
-	{
-		pPrtMgr->GetIMMgr().GetMsgLogMgr().AppendLog(
-			msg._szUserName,
-			msg._szRecvNick,
-			_tstring(msg._szSenderNick).toUTF8().c_str(),
-			_tstring(msg._szTime).toNarrowString().c_str(),
-			_tstring(msg._szDate).toNarrowString().c_str(),
-			_tstring(msg._szContent).c_str()
-			);
-	}
 }

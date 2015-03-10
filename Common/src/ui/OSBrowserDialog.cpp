@@ -24,7 +24,6 @@ COSBrowserDialog::COSBrowserDialog(UINT id, CWnd* pParent,int nType)
 	m_LoadBarPoint = CPoint(70,50);
 	m_pImage = GetSonicUI()->CreateImage();
 	m_strCookieFolder = _T("cef_cookies");
-	m_ProcessInfo.dwProcessId = NULL;
 }
 
 
@@ -195,41 +194,37 @@ void COSBrowserDialog::RunOnceOnStart()
 {
 
 }
-void COSBrowserDialog::StartOSbrowser()
-{
-	if (::IsWindow(m_hWnd))
-	{
-		if (m_bFullMode)
-		{
-			::SendMessage(m_hWnd,WM_SETWEBPLAYERFULLSCREEN, 0, 0) ;
-		}
-		_tstring sBaseDir = theDataPool.GetBaseDir() + FILE_EXE_OSBROWSER;
-		_tstring sCmd;
-		sCmd.Format(5,_T(" \"%d\" \"%d\" \"%d\" \"%s\" \"%s\""),m_uBrowserType,m_hWnd,m_msgClient.GetSelfWindow(),m_csStartUrl.c_str(),theUIString._GetStringFromId(_T("IDS_CONFIG_WEBSITE_STORE")).c_str());
-		STARTUPINFO si = {0};
-		si.cb = sizeof(si);
-		if (!::CreateProcess(sBaseDir.c_str(), (LPWSTR)sCmd.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &m_ProcessInfo))
-		{
-			m_ProcessInfo.dwProcessId = NULL;
-		}
-	}
-}
+
 long COSBrowserDialog::run()
 {
 	RunOnceOnStart();
 	while (true)
 	{
-		if (m_ProcessInfo.dwProcessId)
+		if (::IsWindow(m_hWnd))
 		{
-			WaitForSingleObject(m_ProcessInfo.hProcess,INFINITE);
-			m_lockBrowser.lock();
-			CloseHandle(m_ProcessInfo.hProcess);
-			m_ProcessInfo.dwProcessId = NULL;
-			CloseHandle(m_ProcessInfo.hThread);
-			m_lockBrowser.unlock();
-			::SendMessage(m_hWnd,WM_BROWSER_DESTROY,0,0);
+			if (m_bFullMode)
+			{
+				::SendMessage(m_hWnd,WM_SETWEBPLAYERFULLSCREEN, 0, 0) ;
+			}
+			_tstring sBaseDir = theDataPool.GetBaseDir() + FILE_EXE_OSBROWSER;
+			_tstring sCmd;
+			sCmd.Format(5,_T(" \"%d\" \"%d\" \"%d\" \"%s\" \"%s\""),m_uBrowserType,m_hWnd,m_msgClient.GetSelfWindow(),m_csStartUrl.c_str(),theUIString._GetStringFromId(_T("IDS_CONFIG_WEBSITE_STORE")).c_str());
+			STARTUPINFO si = {0};
+			si.cb = sizeof(si);
+			if (!::CreateProcess(sBaseDir.c_str(), (LPWSTR)sCmd.c_str(), NULL, NULL, FALSE, 0, NULL, NULL, &si, &m_ProcessInfo))
+			{
+				return 0;
+			}
+			Sleep(100);
 		}
-		Sleep(100);
+		else
+		{
+			return 0;
+		}
+		WaitForSingleObject(m_ProcessInfo.hProcess,INFINITE);
+		CloseHandle(m_ProcessInfo.hProcess);
+		CloseHandle(m_ProcessInfo.hThread);
+		::SendMessage(m_hWnd,WM_BROWSER_DESTROY,0,0);
 	}
 }
 LRESULT COSBrowserDialog::OnBrowserDestory(WPARAM wParam,LPARAM lParam)
@@ -251,13 +246,6 @@ void COSBrowserDialog::DrawBrowser(ISonicPaint * pPaint,CRect &rcClient)
 }
 void COSBrowserDialog::DrawBrowser(HWND  hWnd,CRect &rcClient)
 {
-	m_lockBrowser.lock();
-	if (m_ProcessInfo.dwProcessId == NULL)
-	{
-		m_lockBrowser.unlock();
-		return;
-	}
-	m_lockBrowser.unlock();
 	BYTE * pData = GetSonicUI()->SkinFromHwnd(hWnd)->GetPaint()->GetBits();
 	
 	if (!m_psmMgr || !m_psmMgr->GetBits() || !pData)
@@ -632,12 +620,10 @@ void COSBrowserDialog::OnSize(UINT nType, int cx, int cy)
 		GetClientRect(&rc);
 		SetCoreBrowserEvent(WM_SIZE,WPARAM(rc.Width() - m_defRect.left - m_defRect.right),LPARAM(rc.Height() - m_defRect.top - m_defRect.bottom));
 		SetLoadBarRect();
-		m_lockBrowser.lock();
-		if (m_bLoadBarShow && m_wndLoadingBar.GetSafeHwnd() && !m_wndLoadingBar.IsWindowVisible()&&m_ProcessInfo.dwProcessId)
+		if (m_bLoadBarShow && m_wndLoadingBar.GetSafeHwnd() && !m_wndLoadingBar.IsWindowVisible())
 		{
 			m_wndLoadingBar.ShowWindow(SW_SHOWNA);
 		}
-		m_lockBrowser.unlock();
 	}
 }
 BOOL COSBrowserDialog::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
@@ -665,13 +651,6 @@ void COSBrowserDialog::Navigate(_tstring tsURL,int nMode)
 	}
 		m_csStartUrl = tsURL;
 		m_nMode = nMode;
-		m_lockBrowser.lock();
-		if (!m_ProcessInfo.dwProcessId)
-		{
-			StartOSbrowser();
-		}
-		m_lockBrowser.unlock();
-
 }
 void COSBrowserDialog::OnWindowPosChanged(WINDOWPOS* lpwndpos)
 {

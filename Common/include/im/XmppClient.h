@@ -151,7 +151,7 @@ private:
 	void ResetXmppClient();
 
 /*
- *@ functions used in Gloox-Recv thread(from run thread):
+ *@ functions used in Gloox-Recv thread:
  *@ the Gloox-Recv thread will start by run thread when start the IM system;
  *@ the Gloox-Recv thread will stop by run thread or it's self;
  *@ the Gloox-Recv do two things mainly: 
@@ -176,6 +176,7 @@ public:
 
 protected:
 	ConnectionError ClientRecv(bool& bHasExcept, int nTimeOut = 20);
+	static DWORD WINAPI RecvDataProc(void* param);
 
 /*
  *@ functions used in run thread:
@@ -197,11 +198,11 @@ protected:
 	void ReRun(bool bImmediately=false);
 	
 	//functions for processing the task
-	bool StartClient(_tstring& tsToken);
-	bool ReStartClient(_tstring& tsToken);
+	bool StartClient(_tstring tsToken);
 	bool StopClient();
-	bool ReconnectClient(bool bImmediately, bool bOperatorByUser = false);
+	bool ReconnectClient(bool bImmediately);
 	bool DestroyClient();
+	bool GetIMToken(bool bImmediately);
 	bool SetClientPresence(int nPresence);
 	bool SendXmppMsg(_tstring sUserName,_tstring sContent);
 	bool RecvMessage();
@@ -220,18 +221,12 @@ public:
 	void Unintialize();
 	bool IMLogout();
 	bool IMLogin(_tstring tsToken);
-	bool IMReLogin(_tstring tsToken);
 	bool IMReconnect(bool bImmediately);
-	bool IsConnecting(){ return m_bConnecting; }
-	bool IsRosterArrive(){ return m_bRosterArrive; }
-	bool IsWaitForRoster(){ return m_bWaitingForRoster; }
 	bool IsSupportOfflineMessage(){ return m_pOfflineClient != NULL; }
 	bool SendChatMessage(_tstring sUserName,_tstring sContent);
 	void CheckOfflineMessage();
-	void ManuallyDisconnect();
 	void SetPresence(ArcPresenceType iType);
-	void SetLoginWithStatus(int status);
-	void SetConnecting(bool bConnecting);
+	void SetLoginWithStatus(int status){ m_nLoginWithStatus = status; }
 	int GetPresence(){ return m_nStatus; }
 	int GetDisconnectPresence(){ return m_nDisconnectStatus; }
 
@@ -241,15 +236,14 @@ protected:
 private:
 //status can be used by run thread(not need lock):
 	bool volatile m_bRunning;
-	bool volatile m_bConnecting;
 	bool volatile m_bRosterArrive;
-	bool volatile m_bReceiving;
+	bool volatile m_bExitRecvThread;
 	bool volatile m_bOfflineMessageReturnFinished;
 	int  volatile m_nOfflineMessageLeftNum;
 	int  volatile m_nStatus;//used to record the user status(contain the offline status)
 	int  volatile m_nDisconnectStatus;//used to record the status when disconnet from the server
 	int  volatile m_nLoginWithStatus;//used to record the status used in roster-arrived to init the login presence
-	DWORD volatile m_dwConnectTime;
+	HANDLE volatile m_hThread;
 
 private:
 //status can be used by run thread(need lock):
@@ -264,9 +258,12 @@ private:
 	OfflineMessageExtension *m_pOMExtension; //offline message extension (inherit from the StanzaExtension by user)
 
 private:
+//lock
+	Mutex     m_thdLock;
+
+private:
 //just used in the tun thread
 	bool m_bHasWaitForRun;
-	bool m_bWaitingForRoster;
 
 private:
 //common-thread member variable used without lock;
@@ -306,17 +303,13 @@ public:
 	CXmppClientMgr(CIMManager* pMgr);
 	~CXmppClientMgr();
 public:
-	void Initialize(const _IM_CONFIG config);
-	void Unintialize();
-   	bool StartClient(const _tstring tsToken);
-    void StopClient();
-	bool SendChatMessage(_tstring sUserName,_tstring sContent);
-	bool IsWaitForRoster();
-	bool IsRosterArrive();
-	bool IsSupportOfflineMessage();
-	bool IsConnecting();
-	void SetConnecting(bool bConnecting);
-	void SetPresece(ArcPresenceType iType);
+	void  Initialize(const _IM_CONFIG config);
+	void  Unintialize();
+   	bool  StartClient(const _tstring tsToken);
+    void  StopClient();
+	bool  SendChatMessage(_tstring sUserName,_tstring sContent);
+	bool  IsSupportOfflineMessage();
+	void  SetPresece(ArcPresenceType iType);
 	ArcPresenceType GetPresence();
     void HandleRosterArrive(); 
 	void CheckOfflineMessage();

@@ -49,13 +49,11 @@ struct core_msg_connect : public core_msg_header
 {
 	DWORD dwClientId;	// a client id is generally an user-define identity number which should be unique.
 	// in CoreClient this value should the game id.
-	BOOL bAlterable;	// to tell the server if the hwnd can be altered if a new message client with the same dwClientId is created
 	core_msg_connect()
 	{
 		memset(this, 0, sizeof(core_msg_connect));
 		dwSize = sizeof(core_msg_connect);
 		dwCmdId = CORE_MSG_CONNECT;
-		bAlterable = TRUE;
 	}
 };
 
@@ -288,7 +286,6 @@ public:
 		return bOK;
 	}
 	// get the host window who will actually handle messages
-	HWND GetHostWindow(){ return m_hHost; }
 
 	// get the window of this message base used for relaying messages
 	HWND GetSelfWindow(){ return m_MsgWnd.m_hWnd; }
@@ -344,7 +341,6 @@ public:
 	{
 		HWND hClientWnd;
 		DWORD dwClientId;
-		BOOL bAlterable;
 	}CLIENT_DATA;
 	typedef std::list<CLIENT_DATA> LIST_CLIENT_DATA;
 private:
@@ -390,14 +386,21 @@ public:
 	// remark: a server could send messages to a client with a user-define client id
 	virtual BOOL SendCoreMsg(DWORD dwClientID, core_msg_header * pHeader)
 	{
-		for(LIST_CLIENT_DATA::iterator it = m_listClientData.begin(); it != m_listClientData.end(); it++)
+		BOOL bRet = FALSE;
+		for(LIST_CLIENT_DATA::iterator it = m_listClientData.begin(); it != m_listClientData.end(); )
 		{
-			if(it->dwClientId == dwClientID)
+			if(!IsWindow(it->hClientWnd))
 			{
-				return SendCoreMsg(it->hClientWnd, pHeader);
+				it = m_listClientData.erase(it);
+				continue;
 			}
+			if(it->dwClientId == dwClientID)
+			{				
+				bRet &= CCoreMsgBase::SendCoreMsg(it->hClientWnd, pHeader);
+			}
+			it++;
 		}
-		return FALSE;
+		return bRet;
 	}
 	// to test if a client is still valid according to the validity of the binding hwnd
 	BOOL IsClientValid(DWORD dwClientId)
@@ -425,39 +428,31 @@ public:
 	}
 	BOOL RemoveClientById(DWORD dwClientId)
 	{
-		for (LIST_CLIENT_DATA::iterator it = m_listClientData.begin();it != m_listClientData.end(); it++)
+		BOOL bRet = FALSE;
+		for (LIST_CLIENT_DATA::iterator it = m_listClientData.begin();it != m_listClientData.end(); )
 		{
 			if (it->dwClientId == dwClientId)
 			{
-				m_listClientData.erase(it);
-				return TRUE;
+				it = m_listClientData.erase(it);
+				bRet = TRUE;
+				continue;
 			}
+			it++;
 		}
-		return FALSE;
+		return bRet;
 	}
 protected:
 	virtual void OnConnect(HWND hClientSender, core_msg_connect * pConnect)
 	{
 		for(LIST_CLIENT_DATA::iterator it = m_listClientData.begin(); it != m_listClientData.end(); it++)
 		{
-			if(it->dwClientId == pConnect->dwClientId)
+			if(it->hClientWnd == hClientSender)
 			{
-				// already exists, renew the message hwnd of the client
-				if(it->bAlterable || !IsWindow(it->hClientWnd))
-				{
-					it->hClientWnd = hClientSender;
-					it->bAlterable = pConnect->bAlterable;
-				}
-				else
-				{
-					// a game has been binded to the client id, can not renew
-					pConnect->dwRet = 1;
-				}
 				return;
 			}
 		}
 		// a new client is connecting
-		CLIENT_DATA data = {hClientSender, pConnect->dwClientId, TRUE};
+		CLIENT_DATA data = {hClientSender, pConnect->dwClientId};
 		m_listClientData.push_back(data);
 	}
 };
@@ -508,12 +503,10 @@ public:
 		m_hSvr = NULL;
 		CCoreMsgBase::Uninitialize();
 	}
-	DWORD GetClientId(){ return m_dwClientID; }
 
-	BOOL Connect(BOOL bAlterable = FALSE)
+	BOOL Connect()
 	{
 		core_msg_connect msg;
-		msg.bAlterable = bAlterable;
 		msg.dwClientId = m_dwClientID;
 		if(!SendCoreMsg(&msg))
 		{

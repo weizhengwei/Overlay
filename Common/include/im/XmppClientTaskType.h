@@ -8,9 +8,8 @@ enum E_XMPPCLIENT_TASK_TYPE
 {
 	XMPP_TT_INVALID=-1,
 	XMPP_TT_UNINSTALL,
-	XMPP_TT_LOGOUT,
 	XMPP_TT_LOGIN,
-	XMPP_TT_RELOGIN,
+	XMPP_TT_LOGOUT,
 	XMPP_TT_RECONNECT,
 	XMPP_TT_WAIT_FOR_RUN,
 	XMPP_TT_CHECK_OFFLINE,
@@ -87,21 +86,6 @@ typedef struct _XMPP_TASK_IM_LOGOUT : public _XMPP_TASK_HEADER
 
 } XMPP_TASK_IM_LOGOUT, *LPXMPP_TASK_IM_LOGOUT;
 
-
-/*
- *@ XMPP_TASK_IM_RELOGIN Struct
- *@ 
- */
-typedef struct _XMPP_TASK_IM_RELOGIN : public _XMPP_TASK_HEADER
-{
-	_XMPP_TASK_IM_RELOGIN()
-	{
-		_iType = XMPP_TT_RELOGIN;
-	}
-	_tstring tsToken;
-
-} XMPP_TASK_IM_RELOGIN, *LPXMPP_TASK_IM_RELOGIN;
-
 /*
  *@ _XMPP_TASK_RECONNECT Struct
  *@ can been sent by any thread for reconnect
@@ -109,13 +93,10 @@ typedef struct _XMPP_TASK_IM_RELOGIN : public _XMPP_TASK_HEADER
 typedef struct _XMPP_TASK_RECONNECT : public _XMPP_TASK_HEADER
 {
 	_XMPP_TASK_RECONNECT()
-		: _bImmediately(false)
-		, _bOperatorByUser(false)
 	{
 		_iType = XMPP_TT_RECONNECT;
 	}
 	bool _bImmediately;
-	bool _bOperatorByUser;
 
 } XMPP_TASK_RECONNECT, *LPXMPP_TASK_RECONNECT;
 
